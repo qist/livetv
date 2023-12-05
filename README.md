@@ -7,13 +7,13 @@ First you need to install Docker, Centos7 users can directly use the following t
 
 After installing Docker, you can enable LiveTV! on your local port 9500 with the following command:
 
-`docker run -d -p9500:9000 juestnow/livetv:1.1`
+`docker run -d -p9500:9000 juestnow/livetv:main`
 
 The data file is stored inside the container in the `/root/data` directory, so it is recommended to use the -v command to map this directory to the host's directory.
 
 An example of using an external storage directory is shown below.
 
-`docker run -d --name youtube --restart=always -p9500:9000  -v/mnt/data/livetv:/root/data juestnow/livetv:1.1`
+`docker run -d --name youtube --restart=always -p9500:9000  -v/mnt/data/livetv:/root/data juestnow/livetv:main`
 
 This will open a LiveTV! container on port 9500 that uses the `/mnt/data/livetv` directory as storage.
 

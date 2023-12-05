@@ -7,13 +7,13 @@
 
 安裝好Docker后，只需要使用以下命令即可在本地的9500連接埠啓用LiveTV!
 
-`docker run -d -p9500:9000 juestnow/livetv:1.1`
+`docker run -d -p9500:9000 juestnow/livetv:main`
 
 資料檔存儲于容器内的 `/root/data` 目錄中，所以建議使用-v指令將這個目錄映射到宿主機的目錄。
 
 一個使用外部儲存目錄的例子如下。
 
-`docker run -d --name youtube --restart=always -p9500:9000  -v/mnt/data/livetv:/root/data juestnow/livetv:1.1`
+`docker run -d --name youtube --restart=always -p9500:9000  -v/mnt/data/livetv:/root/data juestnow/livetv:main`
 
 這將在 9500 連接埠開啓一個使用 `/mnt/data/livetv` 目錄作爲存儲的 LiveTV！ 容器。
 

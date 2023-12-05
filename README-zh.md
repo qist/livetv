@@ -2,9 +2,9 @@
 
 将Youtube直播作为IPTV电视源
 
-##安装方法
+## 安装方法
 
-首先你需要安装Docker，Centos7用家可以直接使用参考这篇教学文档：[How To Install and Use Docker on CentOS 7]（https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-centos-7）
+首先你需要安装Docker，Centos7用家可以直接使用参考这篇教学文档：[How To Install and Use Docker on CentOS 7](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-centos-7)
 
 安装好Docker后，只需要使用以下命令即可在本地的9500连接埠启用LiveTV！
 
@@ -20,7 +20,7 @@
 
 PS:如果不指定外部存储目录，LiveTV！重新启动时将无法读取之前的设定档。
 
-##使用方法
+## 使用方法
 
 默认的登入密码是“password”，为了你的安全请及时修改。
 
@@ -34,7 +34,7 @@ PS:如果不指定外部存储目录，LiveTV！重新启动时将无法读取�
 
 当你使用Kodi之类的播放器，可以考虑使用第一行的M3U档案URL进行播放，会自动生成包含所有频道信息的播放列表。
 
-yt-dlp的文档可以在这里找到=> [https://github.com/yt-dlp/yt-dlp]（https://github.com/yt-dlp/yt-dlp）
+yt-dlp的文档可以在这里找到=> [https://github.com/yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
 nginx 代理设置
 

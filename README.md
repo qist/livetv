@@ -36,3 +36,36 @@ When you use Kodi or similar player, you can consider using the M3U file URL in 
 yt-dlp document here => [https://github.com/yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
 Document Translate by [DeepL](https://www.deepl.com/zh/translator)
+
+nginx proxy set
+
+```nginx
+upstream  youtube {
+        least_conn;
+        server 127.0.0.1:9000 max_fails=3 fail_timeout=30s resolve;
+        keepalive 1000;
+}
+
+server {
+    listen 80;
+    server_name www.xxx.com;
+     location / {
+        proxy_pass http://youtube;
+        proxy_redirect     off;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP    $remote_addr;
+        proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+        proxy_next_upstream error timeout invalid_header http_502 http_503 http_504;
+        proxy_max_temp_file_size 0;
+        proxy_connect_timeout      90;
+        proxy_send_timeout         90;
+        proxy_read_timeout         90;
+        proxy_buffer_size          4k;
+        proxy_buffers              4 32k;
+        proxy_busy_buffers_size    64k;
+        proxy_temp_file_write_size 64k;
+        proxy_http_version 1.1;
+        proxy_set_header Accept-Encoding "";
+   }
+}
+```

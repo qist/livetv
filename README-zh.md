@@ -35,3 +35,36 @@ PS:如果不指定外部存储目录，LiveTV！重新启动时将无法读取�
 当你使用Kodi之类的播放器，可以考虑使用第一行的M3U档案URL进行播放，会自动生成包含所有频道信息的播放列表。
 
 yt-dlp的文档可以在这里找到=> [https://github.com/yt-dlp/yt-dlp]（https://github.com/yt-dlp/yt-dlp）
+
+nginx 代理设置
+
+```nginx
+upstream  youtube {
+        least_conn;
+        server 127.0.0.1:9000 max_fails=3 fail_timeout=30s resolve;
+        keepalive 1000;
+}
+
+server {
+    listen 80;
+    server_name www.xxx.com;
+     location / {
+        proxy_pass http://youtube;
+        proxy_redirect     off;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP    $remote_addr;
+        proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+        proxy_next_upstream error timeout invalid_header http_502 http_503 http_504;
+        proxy_max_temp_file_size 0;
+        proxy_connect_timeout      90;
+        proxy_send_timeout         90;
+        proxy_read_timeout         90;
+        proxy_buffer_size          4k;
+        proxy_buffers              4 32k;
+        proxy_busy_buffers_size    64k;
+        proxy_temp_file_write_size 64k;
+        proxy_http_version 1.1;
+        proxy_set_header Accept-Encoding "";
+   }
+}
+```

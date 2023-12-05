@@ -5,8 +5,8 @@ COPY . .
 RUN GOPROXY="https://goproxy.io" GO111MODULE=on go build -o livetv .
 
 FROM alpine:latest
-RUN  set -ex \ 
-    && apk update && apk --no-cache add ca-certificates tzdata libc6-compat libgcc ffmpeg libstdc++ \
+RUN set -ex \
+    && apk --no-cache add ca-certificates tzdata libc6-compat libgcc ffmpeg libstdc++ \
     && wget -O /usr/bin/yt-dlp https://github.com/yt-dlp/yt-dlp/t/releases/latest/download/yt-dlp \
     && chmod a+rx /usr/bin/yt-dlp
 WORKDIR /root

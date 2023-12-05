@@ -48,5 +48,5 @@ jobs:
           platforms: linux/amd64
           file: Dockerfile
           push: true
-          tags: 1.1
+          tags: ${{ steps.meta.outputs.labels }}
           labels: ${{ steps.meta.outputs.labels }}

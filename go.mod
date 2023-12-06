@@ -1,6 +1,6 @@
 module github.com/qist/livetv
 
-go 1.13
+go 1.21.4
 
 require (
 	github.com/gin-contrib/sessions v0.0.3

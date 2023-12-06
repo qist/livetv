@@ -14,17 +14,17 @@
   </head>
   <body>
     <div class="container">
-      <h1>LiveTV! <small>使用Youtube直播作爲IPTV源</small></h1>
+      <h1>LiveTV! <small>使用Youtube直播作为IPTV源</small></h1>
       <div class="panel panel-primary">
         <div class="panel-heading">
           <h3 class="panel-title">
-            直播頻道管理員
+            直播频道管理员
           </h3>
         </div>
         <div class="panel-body">
           <form role="form" action="/api/newchannel" method="POST">
             <div class="form-group">
-              <label for="inputChannelName">頻道名稱</label>
+              <label for="inputChannelName">频道名称</label>
               <input type="text" class="form-control" id="inputChannelName" name="name">
             </div>
             <div class="form-group">
@@ -33,10 +33,10 @@
             </div>
             <div class="checkbox">
               <label>
-                <input type="checkbox" name="proxy">代理直播數據流
+                <input type="checkbox" name="proxy">代理直播数据流
               </label>
             </div>
-            <button type="submit" class="btn btn-default">添加頻道</button>
+            <button type="submit" class="btn btn-default">添加频道</button>
           </form>
         </div>
         <table class="table table-striped table-condensed">
@@ -44,8 +44,8 @@
               <th>#</th>
               <th>頻道</th>
               <th>直播URL</th>
-              <th>M3U8檔案URL</th>
-              <th>代理直播數據流</th>
+              <th>M3U8文档URL</th>
+              <th>代理直播数据流</th>
               <th></th>
           </tr>
           {{range .Channels}}
@@ -73,16 +73,16 @@
                 <div class="input-group">
                   <input type="text" class="form-control" id="inputCommand" name="cmd" value="{{.Configs.Cmd}}" disabled>
                   <span class="input-group-btn">
-                    <button class="btn btn-default" type="button" id="allow-edit-button-cmd">啓用編輯</button>
+                    <button class="btn btn-default" type="button" id="allow-edit-button-cmd">开始编辑</button>
                   </span>
                 </div>
               </div>
               <div class="form-group">
-                <label for="inputArgs">yt-dlp 引數</label>
+                <label for="inputArgs">yt-dlp 引用</label>
                 <div class="input-group">
                   <input type="text" class="form-control" id="inputArgs" name="args" value="{{.Configs.Args}}" disabled>
                   <span class="input-group-btn">
-                    <button class="btn btn-default" type="button" id="allow-edit-button-args">啓用編輯</button>
+                    <button class="btn btn-default" type="button" id="allow-edit-button-args">开始编辑</button>
                   </span>
                 </div>
               </div>
@@ -91,28 +91,28 @@
                 <div class="input-group">
                   <input type="url" class="form-control" id="inputBaseURL" name="baseurl" value="{{.Configs.BaseURL}}">
                   <span class="input-group-btn">
-                    <button class="btn btn-default" type="button" id="auto-fill-button">自動填充</button>
+                    <button class="btn btn-default" type="button" id="auto-fill-button">自动填充</button>
                   </span>
                 </div>
               </div>
-              <button type="submit" class="btn btn-default">儲存設定</button>
+              <button type="submit" class="btn btn-default">保存设置</button>
             </form>
           </div>
       </div>
       <div class="panel panel-danger">
         <div class="panel-heading">
           <h3 class="panel-title">
-            修改登入密碼
+            修改登录密码
           </h3>
         </div>
           <div class="panel-body">
             <form role="form" action="/api/changepwd" method="POST">
               <div class="form-group">
-                <label for="inputPassword">新密碼</label>
+                <label for="inputPassword">新密码</label>
                 <input type="password" class="form-control" id="inputPassword" name="password">
               </div>
               <div class="form-group">
-                <label for="inputPassword2">重複輸入密碼</label>
+                <label for="inputPassword2">再次输入密码</label>
                 <input type="password" class="form-control" id="inputPassword2" name="password2">
               </div>
               <button type="submit" class="btn btn-default">修改</button>
@@ -135,14 +135,14 @@
       });
       $("#allow-edit-button-cmd,#allow-edit-button-args").click(function(){
         bootbox.confirm({
-          message: "警告:如果你不知道自己在做什麽請不要編輯這兩個字段.",
+          message: "警告:如果你不知道自己在做什么请不要编辑这个两个字段.",
           buttons: {
               confirm: {
-                  label: '堅持編輯',
+                  label: '继续编辑',
                   className: 'btn-danger'
               },
               cancel: {
-                  label: '放棄編輯',
+                  label: '放弃编辑',
                   className: 'btn-secondary'
               }
           },

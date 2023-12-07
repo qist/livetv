@@ -41,7 +41,7 @@ nginx 代理设置
 ```nginx
 upstream  youtube {
         least_conn;
-        server 127.0.0.1:9000 max_fails=3 fail_timeout=30s resolve;
+        server 127.0.0.1:9000 max_fails=3 fail_timeout=30s;
         keepalive 1000;
 }
 

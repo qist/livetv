@@ -1,4 +1,4 @@
-FROM golang:alpine AS builder
+FROM golang:1-alpine AS builder
 RUN apk update && apk --no-cache add build-base
 WORKDIR /go/src/github.com/qist/livetv/
 COPY . . 

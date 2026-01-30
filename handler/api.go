@@ -53,8 +53,14 @@ func IndexHandler(c *gin.Context) {
 		return
 	}
 	var m3uName string
-	if langTag == language.Chinese {
-		m3uName = "M3U 頻道列表"
+	// Check if the matched language is any variant of Chinese
+	isChinese := false
+	langStr := langTag.String()
+	if strings.HasPrefix(langStr, "zh") || langStr == "zh" {
+		isChinese = true
+	}
+	if isChinese {
+		m3uName = "M3U 频道列表"
 	} else {
 		m3uName = "M3U File"
 	}
@@ -88,7 +94,7 @@ func IndexHandler(c *gin.Context) {
 	}
 
 	var templateFilename string
-	if langTag == language.Chinese {
+	if isChinese {
 		templateFilename = "index-zh.html"
 	} else {
 		templateFilename = "index.html"

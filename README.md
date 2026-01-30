@@ -35,6 +35,40 @@ When you use Kodi or similar player, you can consider using the M3U file URL in 
 
 yt-dlp document here => [https://github.com/yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
+## New Features
+
+### 1. Customizable M3U Playlist Filename
+- Default: `lives.m3u`
+- Can be customized in the configuration management section
+- Changes take effect immediately without server restart
+
+### 2. Customizable Channel Parameter
+- Default: `c` (e.g., `live.m3u8?c=1`)
+- Can be customized in the configuration management section
+
+### 3. Custom Channel IDs
+- Supports custom string IDs for channels (e.g., "news", "sports")
+- Each channel can have a unique custom ID
+- Displayed in the channel list
+
+### 4. Log Output Mode
+- Default: Standard output only
+- Environment variable `LIVETV_LOG_FILE=1` enables file logging
+- Logs stored in `./data/livetv.log`
+
+### 5. Error Handling for Scheduled Caching
+- Tracks failed channels
+- Puts channels in cooldown after 3 consecutive failures
+- Automatically retries after 24-hour cooldown
+
+### 6. Automatic Directory Creation
+- Creates data directory if it doesn't exist
+- Ensures proper storage structure for logs and database
+
+### 7. Version Number
+- Displays version information on startup
+- Current version: 1.0.0
+
 Document Translate by [DeepL](https://www.deepl.com/zh/translator)
 
 nginx proxy set

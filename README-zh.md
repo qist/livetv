@@ -16,6 +16,8 @@
 一个使用外部储存目录的例子如下。
 
 `docker run -d --name youtube --restart=always -p9000:9000 -v/mnt/data/livetv:/root/data juestnow/livetv:latest`
+` docker run -d --name youtube --restart=always --net=host  -v/opt/data/livetv:/root/data ghcr.io/qist/livetv:latest`
+
 
 
 这将在9500连接埠开启一个使用`/mnt/data/livetv`目录作为存储的LiveTV！容器。

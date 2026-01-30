@@ -14,7 +14,7 @@ The data file is stored inside the container in the `/root/data` directory, so i
 An example of using an external storage directory is shown below.
 
 `docker run -d --name youtube --restart=always -p9000:9000  -v/mnt/data/livetv:/root/data juestnow/livetv:latest`
-
+` docker run -d --name youtube --restart=always --net=host  -v/opt/data/livetv:/root/data ghcr.io/qist/livetv:latest`
 This will open a LiveTV! container on port 9500 that uses the `/mnt/data/livetv` directory as storage.
 
 PS: If you do not specify an external storage directory, LiveTV! will not be able to read the previous configuration file when it reboots.

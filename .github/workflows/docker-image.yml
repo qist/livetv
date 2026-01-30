@@ -40,7 +40,7 @@ jobs:
         id: meta_ghcr
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.GHCR_REGISTRY }}/${{ github.repository_owner }}/tvgate
+          images: ${{ env.GHCR_REGISTRY }}/${{ github.repository_owner }}/livetv
           flavor: latest=true
           tags: |
             type=ref,event=branch

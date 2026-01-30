@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,23 +14,57 @@ import (
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	_ "github.com/joho/godotenv/autoload"
-	"github.com/robfig/cron/v3"
 	"github.com/qist/livetv/global"
 	"github.com/qist/livetv/route"
 	"github.com/qist/livetv/service"
+	"github.com/robfig/cron/v3"
+)
+
+const (
+	Version = "1.0.0"
 )
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
+	// Use latest rand syntax (Go 1.20+)
+	// rand.Seed is deprecated, modern Go seeds automatically
+
+	// Set default datadir if not set
+	datadir := os.Getenv("LIVETV_DATADIR")
+	if datadir == "" {
+		datadir = "./data"
+		os.Setenv("LIVETV_DATADIR", datadir)
+	}
+
+	// Create datadir if it doesn't exist
+	if err := os.MkdirAll(datadir, 0755); err != nil {
+		log.Panicln("Failed to create datadir:", err)
+	}
+
+	// Configure logging based on environment variable
+	var logOutput io.Writer = os.Stderr
+	var logFile *os.File
+	var err error
+
+	// Check if file logging is enabled via environment variable
+	if os.Getenv("LIVETV_LOG_FILE") == "1" || os.Getenv("LIVETV_LOG_FILE") == "true" {
+		// Create log file with directory creation
+		logFile, err = os.OpenFile(datadir+"/livetv.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+		if err != nil {
+			log.Panicln("Failed to open log file:", err)
+		}
+		// Only output to file when file logging is enabled
+		logOutput = logFile
+	}
+
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	log.SetOutput(logOutput)
+
+	// Now log startup information
+	log.Println("LiveTV Version", Version)
 	log.Println("Server listen", os.Getenv("LIVETV_LISTEN"))
 	log.Println("Server datadir", os.Getenv("LIVETV_DATADIR"))
-	logFile, err := os.OpenFile(os.Getenv("LIVETV_DATADIR")+"/livetv.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		log.Panicln(err)
-	}
-	log.SetOutput(io.MultiWriter(os.Stderr, logFile))
-	err = global.InitDB(os.Getenv("LIVETV_DATADIR") + "/livetv.db")
+
+	err = global.InitDB(datadir + "/livetv.db")
 	if err != nil {
 		log.Panicf("init: %s\n", err)
 	}
@@ -72,5 +105,7 @@ func main() {
 		log.Panicf("Server forced to shutdown: %s\n", err)
 	}
 	log.Println("Server exiting")
-	logFile.Close()
+	if logFile != nil {
+		logFile.Close()
+	}
 }

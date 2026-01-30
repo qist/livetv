@@ -2,7 +2,7 @@ FROM golang:1-alpine AS builder
 RUN apk update && apk --no-cache add build-base 
 WORKDIR /go/src/github.com/qist/livetv/
 COPY . . 
-RUN GOPROXY="https://goproxy.io" GO111MODULE=on go build -o livetv .
+RUN GOPROXY="https://goproxy.io" GO111MODULE=on CGO_ENABLED=1 go build -o livetv .
 
 FROM alpine:latest
 RUN set -ex \

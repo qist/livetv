@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
-	"io/ioutil"
+	"io"
 )
 
 func CompressString(s string) string {
@@ -25,7 +25,7 @@ func DecompressString(s string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	result, err := ioutil.ReadAll(zipReader)
+	result, err := io.ReadAll(zipReader)
 	if err != nil {
 		return "", err
 	}

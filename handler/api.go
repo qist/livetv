@@ -36,6 +36,14 @@ func IndexHandler(c *gin.Context) {
 		})
 		return
 	}
+	m3uFilename, err := service.GetConfig("m3u_filename")
+	if err != nil {
+		m3uFilename = "lives.m3u"
+	}
+	channelParam, err := service.GetConfig("channel_param")
+	if err != nil {
+		channelParam = "c"
+	}
 	channelModels, err := service.GetAllChannel()
 	if err != nil {
 		log.Println(err.Error())
@@ -54,15 +62,20 @@ func IndexHandler(c *gin.Context) {
 	channels[0] = Channel{
 		ID:   0,
 		Name: m3uName,
-		M3U8: baseUrl + "/lives.m3u",
+		M3U8: baseUrl + "/" + m3uFilename,
 	}
 	for i, v := range channelModels {
+		channelID := strconv.Itoa(int(v.ID))
+		if v.CustomID != "" {
+			channelID = v.CustomID
+		}
 		channels[i+1] = Channel{
-			ID:    v.ID,
-			Name:  v.Name,
-			URL:   v.URL,
-			M3U8:  baseUrl + "/live.m3u8?c=" + strconv.Itoa(int(v.ID)),
-			Proxy: v.Proxy,
+			ID:       v.ID,
+			CustomID: v.CustomID,
+			Name:     v.Name,
+			URL:      v.URL,
+			M3U8:     baseUrl + "/live.m3u8?" + channelParam + "=" + channelID,
+			Proxy:    v.Proxy,
 		}
 	}
 	conf, err := loadConfig()
@@ -103,6 +116,16 @@ func loadConfig() (Config, error) {
 	} else {
 		conf.BaseURL = burl
 	}
+	if m3uFilename, err := service.GetConfig("m3u_filename"); err != nil {
+		conf.M3UFilename = "lives.m3u"
+	} else {
+		conf.M3UFilename = m3uFilename
+	}
+	if channelParam, err := service.GetConfig("channel_param"); err != nil {
+		conf.ChannelParam = "c"
+	} else {
+		conf.ChannelParam = channelParam
+	}
 	return conf, nil
 }
 
@@ -112,15 +135,17 @@ func NewChannelHandler(c *gin.Context) {
 	}
 	chName := c.PostForm("name")
 	chURL := c.PostForm("url")
+	chCustomID := c.PostForm("custom_id")
 	if chName == "" || chURL == "" {
 		c.Redirect(http.StatusFound, "/")
 		return
 	}
 	chProxy := c.PostForm("proxy") != ""
 	mch := model.Channel{
-		Name:  chName,
-		URL:   chURL,
-		Proxy: chProxy,
+		CustomID: chCustomID,
+		Name:     chName,
+		URL:      chURL,
+		Proxy:    chProxy,
 	}
 	err := service.SaveChannel(mch)
 	if err != nil {
@@ -162,6 +187,8 @@ func UpdateConfigHandler(c *gin.Context) {
 	ytdlCmd := c.PostForm("cmd")
 	ytdlArgs := c.PostForm("args")
 	baseUrl := strings.TrimSuffix(c.PostForm("baseurl"), "/")
+	m3uFilename := c.PostForm("m3u_filename")
+	channelParam := c.PostForm("channel_param")
 	if len(ytdlCmd) > 0 {
 		err := service.SetConfig("ytdl_cmd", ytdlCmd)
 		if err != nil {
@@ -184,6 +211,26 @@ func UpdateConfigHandler(c *gin.Context) {
 	}
 	if len(baseUrl) > 0 {
 		err := service.SetConfig("base_url", baseUrl)
+		if err != nil {
+			log.Println(err.Error())
+			c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+				"ErrMsg": err.Error(),
+			})
+			return
+		}
+	}
+	if len(m3uFilename) > 0 {
+		err := service.SetConfig("m3u_filename", m3uFilename)
+		if err != nil {
+			log.Println(err.Error())
+			c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+				"ErrMsg": err.Error(),
+			})
+			return
+		}
+	}
+	if len(channelParam) > 0 {
+		err := service.SetConfig("channel_param", channelParam)
 		if err != nil {
 			log.Println(err.Error())
 			c.HTML(http.StatusInternalServerError, "error.html", gin.H{

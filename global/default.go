@@ -12,6 +12,8 @@ var defaultConfigValue = map[string]string{
 	"ytdl_args": "-f b -g {url}",
 	"base_url":  "http://127.0.0.1:9000",
 	"password":  "password",
+	"m3u_filename": "lives.m3u",
+	"channel_param": "c",
 }
 
 var (

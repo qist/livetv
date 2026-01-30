@@ -18,7 +18,13 @@ func DeleteChannel(id uint) error {
 	return global.DB.Delete(model.Channel{}, "id = ?", id).Error
 }
 
-func GetChannel(channelNumber uint) (channel model.Channel, err error) {
-	err = global.DB.Where("id = ?", channelNumber).First(&channel, channelNumber).Error
+func GetChannel(channelIdentifier interface{}) (channel model.Channel, err error) {
+	// Try custom ID first
+	err = global.DB.Where("custom_id = ?", channelIdentifier).First(&channel).Error
+	if err == nil {
+		return
+	}
+	// Fall back to numeric ID
+	err = global.DB.Where("id = ?", channelIdentifier).First(&channel).Error
 	return
 }

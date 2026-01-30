@@ -26,17 +26,21 @@ func M3UHandler(c *gin.Context) {
 
 func LiveHandler(c *gin.Context) {
 	var m3u8Body string
-	channelCacheKey := c.Query("c")
+	channelParam, err := service.GetConfig("channel_param")
+	if err != nil {
+		channelParam = "c"
+	}
+	channelCacheKey := c.Query(channelParam)
 	iBody, found := global.M3U8Cache.Get(channelCacheKey)
 	if found {
 		m3u8Body = iBody.(string)
 	} else {
-		channelNumber := util.String2Uint(c.Query("c"))
-		if channelNumber == 0 {
+		channelIdentifier := c.Query(channelParam)
+		if channelIdentifier == "" {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
-		channelInfo, err := service.GetChannel(channelNumber)
+		channelInfo, err := service.GetChannel(channelIdentifier)
 		if err != nil {
 			if gorm.IsRecordNotFoundError(err) {
 				c.AbortWithStatus(http.StatusNotFound)

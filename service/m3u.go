@@ -19,13 +19,23 @@ func M3UGenerate() (string, error) {
 	}
 	var m3u strings.Builder
 	m3u.WriteString("#EXTM3U\n")
+	channelParam, err := GetConfig("channel_param")
+	if err != nil {
+		channelParam = "c"
+	}
 	for _, v := range channels {
 		m3u.WriteString("#EXTINF:-1,")
 		m3u.WriteString(v.Name)
 		m3u.WriteString("\n")
 		m3u.WriteString(baseUrl)
-		m3u.WriteString("/live.m3u8?c=")
-		m3u.WriteString(strconv.Itoa(int(v.ID)))
+		m3u.WriteString("/live.m3u8?")
+		m3u.WriteString(channelParam)
+		m3u.WriteString("=")
+		if v.CustomID != "" {
+			m3u.WriteString(v.CustomID)
+		} else {
+			m3u.WriteString(strconv.Itoa(int(v.ID)))
+		}
 		m3u.WriteString("\n")
 	}
 	return m3u.String(), nil

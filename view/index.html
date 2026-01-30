@@ -28,6 +28,10 @@
               <input type="text" class="form-control" id="inputChannelName" name="name">
             </div>
             <div class="form-group">
+              <label for="inputChannelCustomID">Custom ID (optional)</label>
+              <input type="text" class="form-control" id="inputChannelCustomID" name="custom_id" placeholder="e.g., news, sports, custom-channel">
+            </div>
+            <div class="form-group">
               <label for="inputChannelLiveURL">URL</label>
               <input type="text" class="form-control" id="inputChannelLiveURL" name="url">
             </div>
@@ -42,6 +46,7 @@
         <table class="table table-striped table-condensed">
           <tr>
               <th>#</th>
+              <th>Custom ID</th>
               <th>Channel</th>
               <th>Live</th>
               <th>M3U8</th>
@@ -51,6 +56,7 @@
           {{range .Channels}}
           <tr>
               <td>{{.ID}}</td>
+              <td>{{ if .CustomID }}{{.CustomID}}{{ else }}-{{ end }}</td>
               <td>{{.Name}}</td>
               <td>{{.URL}}</td>
               <td>{{.M3U8}}</td>
@@ -94,6 +100,14 @@
                     <button class="btn btn-default" type="button" id="auto-fill-button">Auto Fill</button>
                   </span>
                 </div>
+              </div>
+              <div class="form-group">
+                <label for="inputM3UFilename">M3U Filename</label>
+                <input type="text" class="form-control" id="inputM3UFilename" name="m3u_filename" value="{{.Configs.M3UFilename}}" placeholder="e.g., lives.m3u">
+              </div>
+              <div class="form-group">
+                <label for="inputChannelParam">Channel Parameter</label>
+                <input type="text" class="form-control" id="inputChannelParam" name="channel_param" value="{{.Configs.ChannelParam}}" placeholder="e.g., c, channel, id">
               </div>
               <button type="submit" class="btn btn-default">Save Config</button>
             </form>

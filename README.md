@@ -7,13 +7,13 @@ First you need to install Docker, Centos7 users can directly use the following t
 
 After installing Docker, you can enable LiveTV! on your local port 9500 with the following command:
 
-`docker run -d -p9500:9000 juestnow/livetv:main`
-
+`docker run -d -p9000:9000 juestnow/livetv:latest`
+`ghcr.io/qist/livetv:latest`
 The data file is stored inside the container in the `/root/data` directory, so it is recommended to use the -v command to map this directory to the host's directory.
 
 An example of using an external storage directory is shown below.
 
-`docker run -d --name youtube --restart=always -p9500:9000  -v/mnt/data/livetv:/root/data juestnow/livetv:main`
+`docker run -d --name youtube --restart=always -p9000:9000  -v/mnt/data/livetv:/root/data juestnow/livetv:latest`
 
 This will open a LiveTV! container on port 9500 that uses the `/mnt/data/livetv` directory as storage.
 
@@ -23,7 +23,7 @@ PS: If you do not specify an external storage directory, LiveTV! will not be abl
 
 Default password is "password".
 
-First you need to know how to access your host from the outside, if you are using a VPS or a dedicated server, you can visit `http://your_ip:9500` and you should see the following screen.
+First you need to know how to access your host from the outside, if you are using a VPS or a dedicated server, you can visit `http://your_ip:9000` and you should see the following screen.
 
 ![index_page](pic/index-en.png)
 
@@ -76,7 +76,7 @@ nginx proxy set
 ```nginx
 upstream  youtube {
         least_conn;
-        server 127.0.0.1:9500 max_fails=3 fail_timeout=30s;
+        server 127.0.0.1:9000 max_fails=3 fail_timeout=30s;
         keepalive 1000;
 }
 

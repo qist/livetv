@@ -1,25 +1,15 @@
 name: Docker Image CI
 
-# on:
-#   push:
-#     branches: [ "main" ]
-#   pull_request:
-#     branches: [ "main" ]
-# on:
-#   push:
-#     tags:
-#       - "*"
-#   workflow_dispatch:
 on:
   schedule:
-    # 每天凌晨3点北京时间
+    # 每天凌晨3点北京时间（UTC 19:00）
     - cron: "10 3 * * *"
   workflow_dispatch:
 
 env:
   DOCKER_HUB_REGISTRY: docker.io
   GHCR_REGISTRY: ghcr.io
-  
+
 jobs:
   build-image:
     runs-on: ubuntu-latest
@@ -27,10 +17,33 @@ jobs:
       contents: read
       packages: write
     steps:
+      # 1️⃣ Checkout main 分支
       - uses: actions/checkout@v4
         with:
           ref: main
 
+      # 2️⃣ 检查 yt-dlp 最新 release 时间
+      - name: Check yt-dlp latest release
+        id: check_update
+        run: |
+          TMP_FILE="/tmp/yt-dlp_latest.json"
+          curl -sS -H "Accept: application/vnd.github.v3+json" -o "$TMP_FILE" \
+            "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest"
+
+          PUBLISHED_AT=$(jq -r '.published_at' "$TMP_FILE")
+          PUBLISHED_TS=$(date -d "$PUBLISHED_AT" +%s)
+          CURRENT_TS=$(date +%s)
+          DIFF_SEC=$((CURRENT_TS - PUBLISHED_TS))
+
+          if [ "$DIFF_SEC" -le 36000 ]; then
+              echo "yt-dlp updated within 10 hours. Proceed build."
+              echo "run_build=true" >> $GITHUB_ENV
+          else
+              echo "yt-dlp latest release older than 10 hours. Skip build."
+              echo "run_build=false" >> $GITHUB_ENV
+          fi
+
+      # 3️⃣ Docker metadata
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -39,9 +52,6 @@ jobs:
           flavor: latest=true
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern=v{{version}}
             type=raw,value=latest
 
       - name: Docker metadata for GHCR
@@ -52,32 +62,34 @@ jobs:
           flavor: latest=true
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern=v{{version}}
             type=raw,value=latest
 
+      # 4️⃣ Set up QEMU / Buildx
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to dokcer Container Registry
+      # 5️⃣ Login Docker Hub
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           registry: ${{ env.DOCKER_HUB_REGISTRY }}
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
+      # 6️⃣ Login GitHub Container Registry
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.GHCR_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-          
+
+      # 7️⃣ Build and push only if update is recent
       - name: Build and push
+        if: env.run_build == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -87,10 +99,10 @@ jobs:
           provenance: false
           sbom: false
           tags: |
-            ${{ steps.meta_dockerhub.outputs.tags }}
+            ${{ steps.meta.outputs.tags }}
             ${{ steps.meta_ghcr.outputs.tags }}
           labels: |
-            ${{ steps.meta_dockerhub.outputs.labels }}
+            ${{ steps.meta.outputs.labels }}
             ${{ steps.meta_ghcr.outputs.labels }}
           build-args: |
-            VERSION=${{ github.ref_name }}
+            VERSION=latest

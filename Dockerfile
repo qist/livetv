@@ -11,6 +11,7 @@ COPY . .
 # Go 环境配置
 ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
+RUN gcc -v
 # 编译 livetv
 RUN go build -ldflags "-w -s" -o livetv .
 

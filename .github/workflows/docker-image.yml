@@ -51,7 +51,6 @@ jobs:
           images: ${{ env.DOCKER_HUB_REGISTRY }}/juestnow/livetv
           flavor: latest=true
           tags: |
-            type=ref,event=branch
             type=raw,value=latest
 
       - name: Docker metadata for GHCR
@@ -61,7 +60,6 @@ jobs:
           images: ${{ env.GHCR_REGISTRY }}/${{ github.repository_owner }}/livetv
           flavor: latest=true
           tags: |
-            type=ref,event=branch
             type=raw,value=latest
 
       # 4️⃣ Set up QEMU / Buildx

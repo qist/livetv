@@ -19,7 +19,7 @@ ENV GO111MODULE=on
 ENV CGO_ENABLED=1
 
 # 编译 livetv
-RUN go build -o livetv .
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o livetv .
 
 # ==========================
 # Runtime 阶段

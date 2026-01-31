@@ -42,7 +42,7 @@ jobs:
               echo "yt-dlp latest release older than 10 hours. Skip build."
               echo "run_build=false" >> $GITHUB_ENV
           fi
-
+          echo dddddd ${DIFF_SEC}
       # 3️⃣ Docker metadata
       - name: Docker metadata
         id: meta

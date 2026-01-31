@@ -6,7 +6,7 @@
 
 首先你需要安装Docker，Centos7用家可以直接使用参考这篇教学文档：[How To Install and Use Docker on CentOS 7](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-centos-7)
 
-安装好Docker后，只需要使用以下命令即可在本地的9500连接埠启用LiveTV！
+安装好Docker后，只需要使用以下命令即可在本地的9000连接启用LiveTV！
 
 `docker run -d -p9000:9000 juestnow/livetv:latest`
 
@@ -22,7 +22,7 @@
 
 
 
-这将在9500连接埠开启一个使用`/mnt/data/livetv`目录作为存储的LiveTV！容器。
+这将在9000连接开启一个使用`/mnt/data/livetv`目录作为存储的LiveTV！容器。
 
 PS:如果不指定外部存储目录，LiveTV！重新启动时将无法读取之前的设定档。
 

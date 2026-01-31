@@ -5,7 +5,7 @@ Use Youtube live as IPTV feeds
 
 First you need to install Docker, Centos7 users can directly use the following tutorials. [How To Install and Use Docker on CentOS 7](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-centos-7)
 
-After installing Docker, you can enable LiveTV! on your local port 9500 with the following command:
+After installing Docker, you can enable LiveTV! on your local port 9000 with the following command:
 
 `docker run -d -p9000:9000 juestnow/livetv:latest`
 
@@ -19,7 +19,7 @@ An example of using an external storage directory is shown below.
 
 ` docker run -d --name youtube --restart=always --net=host  -v/opt/data/livetv:/root/data ghcr.io/qist/livetv:latest`
 
-This will open a LiveTV! container on port 9500 that uses the `/mnt/data/livetv` directory as storage.
+This will open a LiveTV! container on port 9000 that uses the `/mnt/data/livetv` directory as storage.
 
 PS: If you do not specify an external storage directory, LiveTV! will not be able to read the previous configuration file when it reboots.
 

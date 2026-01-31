@@ -19,7 +19,7 @@ ENV GO111MODULE=on
 ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
 # 编译 livetv
-RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o livetv .
+RUN go build -o livetv .
 
 # ==========================
 # Runtime 阶段
@@ -31,7 +31,10 @@ RUN set -ex \
     && apk --no-cache add \
         ca-certificates \
         tzdata \
+        libc6-compat \
+        libgcc \
         ffmpeg \
+        libstdc++ \
     && update-ca-certificates
 
 # 设置工作目录

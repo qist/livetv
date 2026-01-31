@@ -5,12 +5,17 @@ name: Docker Image CI
 #     branches: [ "main" ]
 #   pull_request:
 #     branches: [ "main" ]
+# on:
+#   push:
+#     tags:
+#       - "*"
+#   workflow_dispatch:
 on:
-  push:
-    tags:
-      - "*"
+  schedule:
+    # 每天凌晨3点北京时间
+    - cron: "10 3 * * *"
   workflow_dispatch:
-    
+
 env:
   DOCKER_HUB_REGISTRY: docker.io
   GHCR_REGISTRY: ghcr.io
@@ -23,6 +28,9 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -73,7 +81,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64/v8
           file: Dockerfile
           push: true
           provenance: false

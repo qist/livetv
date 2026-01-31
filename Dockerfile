@@ -1,7 +1,7 @@
 # ==========================
 # Builder 阶段
 # ==========================
-FROM --platform=$BUILDPLATFORM golang:alpine AS builder
+FROM golang:alpine AS builder
 WORKDIR /go/src/github.com/qist/livetv/
 ARG TARGETARCH
 # 安装构建依赖

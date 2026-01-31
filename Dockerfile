@@ -2,24 +2,17 @@
 # Builder 阶段
 # ==========================
 FROM --platform=$BUILDPLATFORM golang:alpine AS builder
-
+WORKDIR /go/src/github.com/qist/livetv/
+ARG TARGETARCH
 # 安装构建依赖
 RUN apk add --no-cache build-base git
-
-WORKDIR /go/src/github.com/qist/livetv/
 COPY . .
 
 # Go 环境配置
-ARG TARGETOS
-ARG TARGETARCH
-ARG TARGETVARIANT
-ARG VERSION=latest
-ENV GOPROXY="https://goproxy.io"
-ENV GO111MODULE=on
 ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
 # 编译 livetv
-RUN go build -o livetv .
+RUN go build -ldflags "-w -s" -o livetv .
 
 # ==========================
 # Runtime 阶段
@@ -31,10 +24,7 @@ RUN set -ex \
     && apk --no-cache add \
         ca-certificates \
         tzdata \
-        libc6-compat \
-        libgcc \
         ffmpeg \
-        libstdc++ \
     && update-ca-certificates
 
 # 设置工作目录

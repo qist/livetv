@@ -35,14 +35,14 @@ jobs:
           CURRENT_TS=$(date +%s)
           DIFF_SEC=$((CURRENT_TS - PUBLISHED_TS))
 
-          if [ "$DIFF_SEC" -le 115200 ]; then
-              echo "yt-dlp updated within 10 hours. Proceed build."
+          if [ "$DIFF_SEC" -le $((22*3600)) ]; then
+              echo "yt-dlp updated within 22 hours. Proceed build."
               echo "run_build=true" >> $GITHUB_ENV
           else
-              echo "yt-dlp latest release older than 10 hours. Skip build."
+              echo "yt-dlp latest release older than 22 hours. Skip build."
               echo "run_build=false" >> $GITHUB_ENV
           fi
-          echo dddddd ${DIFF_SEC}
+          # echo dddddd ${DIFF_SEC}
       # 3️⃣ Docker metadata
       - name: Docker metadata
         id: meta
@@ -89,7 +89,7 @@ jobs:
 
       # 7️⃣ Build and push only if update is recent
       - name: Build and push
-        # if: env.run_build == 'true'
+        if: env.run_build == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .

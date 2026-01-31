@@ -35,7 +35,7 @@ jobs:
           CURRENT_TS=$(date +%s)
           DIFF_SEC=$((CURRENT_TS - PUBLISHED_TS))
 
-          if [ "$DIFF_SEC" -le 36000 ]; then
+          if [ "$DIFF_SEC" -le 115200 ]; then
               echo "yt-dlp updated within 10 hours. Proceed build."
               echo "run_build=true" >> $GITHUB_ENV
           else

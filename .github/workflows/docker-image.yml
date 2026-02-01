@@ -2,7 +2,7 @@ name: Docker Image CI
 
 on:
   schedule:
-    # 每天凌晨3点北京时间（UTC 19:00）
+    # 每天13点10分北京时间（UTC 3:10）
     - cron: "10 3 * * *"
   workflow_dispatch:
 

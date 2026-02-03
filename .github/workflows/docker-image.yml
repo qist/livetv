@@ -89,7 +89,7 @@ jobs:
 
       # 7️⃣ Build and push only if update is recent
       - name: Build and push
-        if: env.run_build == 'true'
+        # if: env.run_build == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .

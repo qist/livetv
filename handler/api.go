@@ -141,7 +141,7 @@ func NewChannelHandler(c *gin.Context) {
 	}
 	chName := c.PostForm("name")
 	chURL := c.PostForm("url")
-	chCustomID := c.PostForm("custom_id")
+	chCustomID := strings.TrimSpace(c.PostForm("custom_id"))
 	if chName == "" || chURL == "" {
 		c.Redirect(http.StatusFound, "/")
 		return

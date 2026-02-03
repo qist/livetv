@@ -1,6 +1,8 @@
 package service
 
 import (
+	"strconv"
+
 	"github.com/qist/livetv/global"
 	"github.com/qist/livetv/model"
 )
@@ -11,6 +13,17 @@ func GetAllChannel() (channels []model.Channel, err error) {
 }
 
 func SaveChannel(channel model.Channel) error {
+	if channel.ID == 0 {
+		err := global.DB.Create(&channel).Error
+		if err != nil {
+			return err
+		}
+		if channel.CustomID == "" {
+			autoID := strconv.Itoa(int(channel.ID))
+			return global.DB.Model(&channel).Update("custom_id", autoID).Error
+		}
+		return nil
+	}
 	return global.DB.Save(&channel).Error
 }
 

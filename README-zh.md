@@ -42,6 +42,25 @@ PS:如果不指定外部存储目录，LiveTV！重新启动时将无法读取�
 
 yt-dlp的文档可以在这里找到=> [https://github.com/yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
+## Cookies 获取与配置
+
+当部分频道需要登录才能访问时，可以配置 cookies 让 yt-dlp 正常拉流。
+
+### 如何获取 cookies.txt（Netscape 格式）
+1. 使用浏览器登录目标网站（如 YouTube）。
+2. 安装浏览器扩展导出 cookies，例如“Get cookies.txt”或“Cookie-Editor”。
+3. 使用 Cookie-Editor 时，切换到 YouTube 页面，点击右下角的 Export，复制导出的内容（Netscape 格式）。
+4. 将复制内容粘贴到“yt-dlp Cookies 内容”。
+
+### 在 LiveTV 中配置
+1. 打开设置页的 “yt-dlp Cookies 内容（可选）”。
+2. 将 cookies.txt 的内容粘贴到文本框并保存。
+3. 留空并保存即可禁用 cookies。
+
+### 安全说明
+- cookies 会保存为数据目录下的 `cookies.txt`，权限为 600。
+- 仅支持由页面粘贴内容生成文件，不支持自定义路径或上传文件，避免路径风险。
+
 ## 新功能
 
 ### 1. M3U 播放列表文件名自定义

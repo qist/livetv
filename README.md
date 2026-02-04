@@ -1,4 +1,6 @@
 # LiveTV
+
+[中文文档](README-zh.md)
 Use Youtube live as IPTV feeds
 
 ## Install 
@@ -38,6 +40,24 @@ Then you can add a channel. After the channel is added successfully, you can pla
 When you use Kodi or similar player, you can consider using the M3U file URL in the first row to play, and a playlist containing all the channel information will be generated automatically.
 
 yt-dlp document here => [https://github.com/yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp)
+
+## Cookies: How to Obtain and Configure
+
+Some channels require login. You can provide cookies so yt-dlp can access them.
+
+### How to get cookies.txt (Netscape format)
+1. Sign in to the target website in your browser (e.g., YouTube).
+2. Install a browser extension that can export cookies, such as "Get cookies.txt".
+3. Export cookies from the target site and copy the exported text (Netscape format).
+
+### Configure in LiveTV
+1. Open the settings page and find "yt-dlp Cookies Content (optional)".
+2. Paste the cookies.txt content and save.
+3. Leave it empty and save to disable cookies.
+
+### Security Notes
+- Cookies are saved to `LIVETV_DATADIR/cookies.txt` with permission `600`.
+- Only paste-in content is supported; custom paths or file uploads are not allowed to avoid path risks.
 
 ## New Features
 

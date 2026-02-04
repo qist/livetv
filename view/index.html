@@ -93,6 +93,16 @@
                 </div>
               </div>
               <div class="form-group">
+                <label for="inputCookiesContent">yt-dlp Cookies Content (optional)</label>
+                <textarea class="form-control" id="inputCookiesContent" name="cookies_content" rows="6" placeholder="Paste cookies.txt content here (Netscape format)">{{.Configs.CookiesContent}}</textarea>
+                <p class="help-block">The server will save this content to <code>LIVETV_DATADIR/cookies.txt</code> with strict permissions. Leave empty to disable cookies. Export in Netscape format (e.g., using a browser extension such as "Get cookies.txt").</p>
+              </div>
+              <div class="form-group">
+                <label for="inputCookiesDomain">Cookies Domain (required for Cookie header format)</label>
+                <input type="text" class="form-control" id="inputCookiesDomain" name="cookies_domain" value="{{.Configs.CookiesDomain}}" placeholder="e.g., .youtube.com">
+                <p class="help-block">If you paste a single-line <code>name=value;</code> Cookie header, the server will convert it to Netscape format using this domain.</p>
+              </div>
+              <div class="form-group">
                 <label for="inputYtdlTimeout">yt-dlp Timeout (seconds)</label>
                 <input type="number" class="form-control" id="inputYtdlTimeout" name="ytdl_timeout" value="{{.Configs.YtdlTimeout}}" placeholder="e.g., 20">
               </div>

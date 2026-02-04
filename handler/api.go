@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -118,6 +120,29 @@ func loadConfig() (Config, error) {
 	} else {
 		conf.Args = args
 	}
+	if cookies, err := service.GetConfig("ytdl_cookies"); err != nil {
+		conf.Cookies = ""
+	} else {
+		conf.Cookies = cookies
+	}
+	if cookiesDomain, err := service.GetConfig("ytdl_cookies_domain"); err != nil {
+		conf.CookiesDomain = ""
+	} else {
+		conf.CookiesDomain = cookiesDomain
+	}
+	if conf.Cookies != "" {
+		datadir := os.Getenv("LIVETV_DATADIR")
+		if datadir == "" {
+			datadir = "./data"
+		}
+		cookiePath := conf.Cookies
+		if !filepath.IsAbs(cookiePath) {
+			cookiePath = filepath.Join(datadir, cookiePath)
+		}
+		if b, err := os.ReadFile(cookiePath); err == nil {
+			conf.CookiesContent = string(b)
+		}
+	}
 	if ytdlTimeout, err := service.GetConfig("ytdl_timeout"); err != nil {
 		conf.YtdlTimeout = "20"
 	} else {
@@ -203,6 +228,8 @@ func UpdateConfigHandler(c *gin.Context) {
 	}
 	ytdlCmd := c.PostForm("cmd")
 	ytdlArgs := c.PostForm("args")
+	ytdlCookiesContent, hasYtdlCookiesContent := c.GetPostForm("cookies_content")
+	ytdlCookiesDomain, hasYtdlCookiesDomain := c.GetPostForm("cookies_domain")
 	ytdlTimeout := c.PostForm("ytdl_timeout")
 	baseUrl := strings.TrimSuffix(c.PostForm("baseurl"), "/")
 	m3uFilename := c.PostForm("m3u_filename")
@@ -226,6 +253,75 @@ func UpdateConfigHandler(c *gin.Context) {
 				"ErrMsg": err.Error(),
 			})
 			return
+		}
+	}
+	if hasYtdlCookiesDomain {
+		err := service.SetConfig("ytdl_cookies_domain", strings.TrimSpace(ytdlCookiesDomain))
+		if err != nil {
+			log.Println(err.Error())
+			c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+				"ErrMsg": err.Error(),
+			})
+			return
+		}
+	}
+	if hasYtdlCookiesContent {
+		datadir := os.Getenv("LIVETV_DATADIR")
+		if datadir == "" {
+			datadir = "./data"
+		}
+		cookieFilename := "cookies.txt"
+		cookiePath := filepath.Join(datadir, cookieFilename)
+		cleanContent := strings.TrimSpace(ytdlCookiesContent)
+		if cleanContent == "" {
+			_ = os.Remove(cookiePath)
+			if err := service.SetConfig("ytdl_cookies", ""); err != nil {
+				log.Println(err.Error())
+				c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+					"ErrMsg": err.Error(),
+				})
+				return
+			}
+		} else {
+			finalContent := cleanContent
+			if !looksLikeNetscapeCookies(finalContent) {
+				domain := strings.TrimSpace(ytdlCookiesDomain)
+				if domain == "" {
+					c.HTML(http.StatusBadRequest, "error.html", gin.H{
+						"ErrMsg": "Cookies domain is required when pasting Cookie header format.",
+					})
+					return
+				}
+				converted, convErr := convertCookieHeaderToNetscape(finalContent, domain)
+				if convErr != nil {
+					c.HTML(http.StatusBadRequest, "error.html", gin.H{
+						"ErrMsg": convErr.Error(),
+					})
+					return
+				}
+				finalContent = converted
+			}
+			if err := os.MkdirAll(datadir, 0755); err != nil {
+				log.Println(err.Error())
+				c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+					"ErrMsg": err.Error(),
+				})
+				return
+			}
+			if err := os.WriteFile(cookiePath, []byte(finalContent), 0600); err != nil {
+				log.Println(err.Error())
+				c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+					"ErrMsg": err.Error(),
+				})
+				return
+			}
+			if err := service.SetConfig("ytdl_cookies", cookieFilename); err != nil {
+				log.Println(err.Error())
+				c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+					"ErrMsg": err.Error(),
+				})
+				return
+			}
 		}
 	}
 	if len(ytdlTimeout) > 0 {
@@ -279,6 +375,65 @@ func UpdateConfigHandler(c *gin.Context) {
 		}
 	}
 	c.Redirect(http.StatusFound, "/")
+}
+
+func looksLikeNetscapeCookies(content string) bool {
+	if strings.HasPrefix(strings.TrimSpace(content), "# Netscape HTTP Cookie File") {
+		return true
+	}
+	return strings.Contains(content, "\t")
+}
+
+func convertCookieHeaderToNetscape(header string, domain string) (string, error) {
+	if !strings.Contains(header, "=") {
+		return "", fmt.Errorf("Invalid cookies content.")
+	}
+	domain = strings.TrimSpace(domain)
+	if domain == "" {
+		return "", fmt.Errorf("Cookies domain is required.")
+	}
+	includeSubdomain := "FALSE"
+	if strings.HasPrefix(domain, ".") {
+		includeSubdomain = "TRUE"
+	}
+	cleanHeader := strings.TrimSpace(header)
+	parts := strings.Split(cleanHeader, ";")
+	var b strings.Builder
+	b.WriteString("# Netscape HTTP Cookie File\n")
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		kv := strings.SplitN(part, "=", 2)
+		if len(kv) != 2 {
+			continue
+		}
+		name := strings.TrimSpace(kv[0])
+		value := strings.TrimSpace(kv[1])
+		if name == "" {
+			continue
+		}
+		secure := "FALSE"
+		if strings.HasPrefix(name, "__Secure-") || strings.HasPrefix(name, "__Host-") {
+			secure = "TRUE"
+		}
+		b.WriteString(domain)
+		b.WriteString("\t")
+		b.WriteString(includeSubdomain)
+		b.WriteString("\t")
+		b.WriteString("/")
+		b.WriteString("\t")
+		b.WriteString(secure)
+		b.WriteString("\t")
+		b.WriteString("0")
+		b.WriteString("\t")
+		b.WriteString(name)
+		b.WriteString("\t")
+		b.WriteString(value)
+		b.WriteString("\n")
+	}
+	return b.String(), nil
 }
 
 func LogHandler(c *gin.Context) {

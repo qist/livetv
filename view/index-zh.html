@@ -93,6 +93,16 @@
                 </div>
               </div>
               <div class="form-group">
+                <label for="inputCookiesContent">yt-dlp Cookies 内容（可选）</label>
+                <textarea class="form-control" id="inputCookiesContent" name="cookies_content" rows="6" placeholder="粘贴 cookies.txt 内容（Netscape 格式）">{{.Configs.CookiesContent}}</textarea>
+                <p class="help-block">服务端会把内容保存为 <code>LIVETV_DATADIR/cookies.txt</code> 并设置严格权限。留空则禁用 cookies。请导出 Netscape 格式 cookies（如使用浏览器扩展“Get cookies.txt”）。</p>
+              </div>
+              <div class="form-group">
+                <label for="inputCookiesDomain">Cookies 域名（用于 Cookie 头格式）</label>
+                <input type="text" class="form-control" id="inputCookiesDomain" name="cookies_domain" value="{{.Configs.CookiesDomain}}" placeholder="例如: .youtube.com">
+                <p class="help-block">若粘贴的是单行 <code>name=value;</code> Cookie 头，服务端会使用该域名转换为 Netscape 格式。</p>
+              </div>
+              <div class="form-group">
                 <label for="inputYtdlTimeout">yt-dlp 超时(秒)</label>
                 <input type="number" class="form-control" id="inputYtdlTimeout" name="ytdl_timeout" value="{{.Configs.YtdlTimeout}}" placeholder="例如: 20">
               </div>

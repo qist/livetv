@@ -4,7 +4,9 @@ import (
 	"context"
 	"io"
 	"log"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -41,11 +43,27 @@ func RealGetYoutubeLiveM3U8(youtubeURL string) (string, error) {
 		log.Println(err)
 		return "", err
 	}
+	YtdlCookies, err := GetConfig("ytdl_cookies")
+	if err != nil {
+		log.Println(err)
+		return "", err
+	}
 	ytdlArgs := strings.Fields(YtdlArgs)
 	for i, v := range ytdlArgs {
 		if strings.EqualFold(v, "{url}") {
 			ytdlArgs[i] = youtubeURL
 		}
+	}
+	ytdlCookies := strings.TrimSpace(YtdlCookies)
+	if ytdlCookies != "" {
+		if !filepath.IsAbs(ytdlCookies) {
+			datadir := os.Getenv("LIVETV_DATADIR")
+			if datadir == "" {
+				datadir = "./data"
+			}
+			ytdlCookies = filepath.Join(datadir, ytdlCookies)
+		}
+		ytdlArgs = append(ytdlArgs, "--cookies", ytdlCookies)
 	}
 	_, err = exec.LookPath(YtdlCmd)
 	if err != nil {

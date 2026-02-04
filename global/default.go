@@ -10,6 +10,8 @@ import (
 var defaultConfigValue = map[string]string{
 	"ytdl_cmd":  "yt-dlp",
 	"ytdl_args": "-f b -g {url}",
+	"ytdl_cookies": "",
+	"ytdl_cookies_domain": ".youtube.com",
 	"ytdl_timeout": "20",
 	"base_url":  "http://127.0.0.1:9000",
 	"password":  "password",

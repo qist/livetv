@@ -12,6 +12,9 @@ type Channel struct {
 type Config struct {
 	Cmd          string
 	Args         string
+	Cookies      string
+	CookiesContent string
+	CookiesDomain string
 	YtdlTimeout  string
 	BaseURL      string
 	M3UFilename  string

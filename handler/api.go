@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/qist/livetv/global"
 	"github.com/qist/livetv/model"
 	"github.com/qist/livetv/service"
 	"github.com/qist/livetv/util"
@@ -283,8 +284,51 @@ func UpdateConfigHandler(c *gin.Context) {
 func LogHandler(c *gin.Context) {
 	if sessions.Default(c).Get("logined") != true {
 		c.Redirect(http.StatusFound, "/login")
+		return
 	}
-	c.File(os.Getenv("LIVETV_DATADIR") + "/livetv.log")
+	tail := strings.ToLower(strings.TrimSpace(c.Query("tail")))
+	if tail == "1" || tail == "true" || tail == "yes" {
+		streamLog(c)
+		return
+	}
+
+	if global.LogFilePath != "" {
+		if _, err := os.Stat(global.LogFilePath); err == nil {
+			c.File(global.LogFilePath)
+			return
+		}
+	}
+	// Fallback to in-memory buffer when no log file exists.
+	c.Header("Content-Type", "text/plain; charset=utf-8")
+	for _, line := range global.LogStreamBuffer.Snapshot() {
+		_, _ = c.Writer.Write([]byte(line + "\n"))
+	}
+}
+
+func streamLog(c *gin.Context) {
+	c.Header("Content-Type", "text/plain; charset=utf-8")
+	c.Header("Cache-Control", "no-store")
+	c.Header("X-Accel-Buffering", "no")
+	flusher, ok := c.Writer.(http.Flusher)
+	if !ok {
+		return
+	}
+	for _, line := range global.LogStreamBuffer.Snapshot() {
+		_, _ = c.Writer.Write([]byte(line + "\n"))
+	}
+	flusher.Flush()
+	ch, cancel := global.LogStreamBuffer.Subscribe()
+	defer cancel()
+	ctx := c.Request.Context()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case line := <-ch:
+			_, _ = c.Writer.Write([]byte(line + "\n"))
+			flusher.Flush()
+		}
+	}
 }
 
 func LoginViewHandler(c *gin.Context) {

@@ -117,6 +117,11 @@ func loadConfig() (Config, error) {
 	} else {
 		conf.Args = args
 	}
+	if ytdlTimeout, err := service.GetConfig("ytdl_timeout"); err != nil {
+		conf.YtdlTimeout = "20"
+	} else {
+		conf.YtdlTimeout = ytdlTimeout
+	}
 	if burl, err := service.GetConfig("base_url"); err != nil {
 		return conf, err
 	} else {
@@ -131,6 +136,11 @@ func loadConfig() (Config, error) {
 		conf.ChannelParam = "c"
 	} else {
 		conf.ChannelParam = channelParam
+	}
+	if tsTimeout, err := service.GetConfig("ts_timeout"); err != nil {
+		conf.TSTimeout = "30"
+	} else {
+		conf.TSTimeout = tsTimeout
 	}
 	return conf, nil
 }
@@ -192,9 +202,11 @@ func UpdateConfigHandler(c *gin.Context) {
 	}
 	ytdlCmd := c.PostForm("cmd")
 	ytdlArgs := c.PostForm("args")
+	ytdlTimeout := c.PostForm("ytdl_timeout")
 	baseUrl := strings.TrimSuffix(c.PostForm("baseurl"), "/")
 	m3uFilename := c.PostForm("m3u_filename")
 	channelParam := c.PostForm("channel_param")
+	tsTimeout := c.PostForm("ts_timeout")
 	if len(ytdlCmd) > 0 {
 		err := service.SetConfig("ytdl_cmd", ytdlCmd)
 		if err != nil {
@@ -207,6 +219,16 @@ func UpdateConfigHandler(c *gin.Context) {
 	}
 	if len(ytdlArgs) > 0 {
 		err := service.SetConfig("ytdl_args", ytdlArgs)
+		if err != nil {
+			log.Println(err.Error())
+			c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+				"ErrMsg": err.Error(),
+			})
+			return
+		}
+	}
+	if len(ytdlTimeout) > 0 {
+		err := service.SetConfig("ytdl_timeout", ytdlTimeout)
 		if err != nil {
 			log.Println(err.Error())
 			c.HTML(http.StatusInternalServerError, "error.html", gin.H{
@@ -245,6 +267,16 @@ func UpdateConfigHandler(c *gin.Context) {
 			return
 		}
 	}
+	if len(tsTimeout) > 0 {
+		err := service.SetConfig("ts_timeout", tsTimeout)
+		if err != nil {
+			log.Println(err.Error())
+			c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+				"ErrMsg": err.Error(),
+			})
+			return
+		}
+	}
 	c.Redirect(http.StatusFound, "/")
 }
 
@@ -274,13 +306,6 @@ func LoginViewHandler(c *gin.Context) {
 
 func LoginActionHandler(c *gin.Context) {
 	session := sessions.Default(c)
-	crsfToken := c.PostForm("crsf")
-	if crsfToken != session.Get("crsfToken") {
-		c.HTML(http.StatusOK, "error.html", gin.H{
-			"ErrMsg": "Password error!",
-		})
-		return
-	}
 	pass := c.PostForm("password")
 	cfgPass, err := service.GetConfig("password")
 	if err != nil {
@@ -290,8 +315,27 @@ func LoginActionHandler(c *gin.Context) {
 		})
 		return
 	}
+	// Check CSRF only when a session token exists. This avoids blocking login
+	// when cookies are lost or the session secret changes.
+	crsfToken := c.PostForm("crsf")
+	sessionToken := ""
+	if v := session.Get("crsfToken"); v != nil {
+		switch t := v.(type) {
+		case string:
+			sessionToken = t
+		case []byte:
+			sessionToken = string(t)
+		}
+	}
+	if sessionToken != "" && crsfToken != sessionToken {
+		c.HTML(http.StatusOK, "error.html", gin.H{
+			"ErrMsg": "Session expired. Please refresh the login page and try again.",
+		})
+		return
+	}
 	if pass == cfgPass {
 		session.Set("logined", true)
+		session.Delete("crsfToken")
 		err = session.Save()
 		if err != nil {
 			log.Println(err.Error())
@@ -335,6 +379,7 @@ func ChangePasswordHandler(c *gin.Context) {
 		c.HTML(http.StatusOK, "error.html", gin.H{
 			"ErrMsg": "Password mismatch!",
 		})
+		return
 	}
 	err := service.SetConfig("password", pass)
 	if err != nil {

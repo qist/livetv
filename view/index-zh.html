@@ -93,6 +93,10 @@
                 </div>
               </div>
               <div class="form-group">
+                <label for="inputYtdlTimeout">yt-dlp 超时(秒)</label>
+                <input type="number" class="form-control" id="inputYtdlTimeout" name="ytdl_timeout" value="{{.Configs.YtdlTimeout}}" placeholder="例如: 20">
+              </div>
+              <div class="form-group">
                 <label for="inputBaseURL">URL地址</label>
                 <div class="input-group">
                   <input type="url" class="form-control" id="inputBaseURL" name="baseurl" value="{{.Configs.BaseURL}}">
@@ -108,6 +112,10 @@
               <div class="form-group">
                 <label for="inputChannelParam">频道参数</label>
                 <input type="text" class="form-control" id="inputChannelParam" name="channel_param" value="{{.Configs.ChannelParam}}" placeholder="例如: c, channel, id">
+              </div>
+              <div class="form-group">
+                <label for="inputTsTimeout">TS 超时(秒)</label>
+                <input type="number" class="form-control" id="inputTsTimeout" name="ts_timeout" value="{{.Configs.TSTimeout}}" placeholder="例如: 30">
               </div>
               <button type="submit" class="btn btn-default">保存设置</button>
             </form>

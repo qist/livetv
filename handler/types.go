@@ -12,7 +12,9 @@ type Channel struct {
 type Config struct {
 	Cmd          string
 	Args         string
+	YtdlTimeout  string
 	BaseURL      string
 	M3UFilename  string
 	ChannelParam string
+	TSTimeout    string
 }

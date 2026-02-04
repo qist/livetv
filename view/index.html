@@ -93,6 +93,10 @@
                 </div>
               </div>
               <div class="form-group">
+                <label for="inputYtdlTimeout">yt-dlp Timeout (seconds)</label>
+                <input type="number" class="form-control" id="inputYtdlTimeout" name="ytdl_timeout" value="{{.Configs.YtdlTimeout}}" placeholder="e.g., 20">
+              </div>
+              <div class="form-group">
                 <label for="inputBaseURL">BaseURL</label>
                 <div class="input-group">
                   <input type="url" class="form-control" id="inputBaseURL" name="baseurl" value="{{.Configs.BaseURL}}">
@@ -108,6 +112,10 @@
               <div class="form-group">
                 <label for="inputChannelParam">Channel Parameter</label>
                 <input type="text" class="form-control" id="inputChannelParam" name="channel_param" value="{{.Configs.ChannelParam}}" placeholder="e.g., c, channel, id">
+              </div>
+              <div class="form-group">
+                <label for="inputTsTimeout">TS Timeout (seconds)</label>
+                <input type="number" class="form-control" id="inputTsTimeout" name="ts_timeout" value="{{.Configs.TSTimeout}}" placeholder="e.g., 30">
               </div>
               <button type="submit" class="btn btn-default">Save Config</button>
             </form>

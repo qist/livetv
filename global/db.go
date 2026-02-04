@@ -1,6 +1,8 @@
 package global
 
 import (
+	"log"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/qist/livetv/model"
@@ -22,6 +24,10 @@ func InitDB(filepath string) (err error) {
 		err = DB.Where("name = ?", key).First(&valueInDB).Error
 		if err != nil {
 			if gorm.IsRecordNotFoundError(err) {
+				// Persist defaults so config exists across restarts.
+				if createErr := DB.Create(&model.Config{Name: key, Data: valueDefault}).Error; createErr != nil {
+					log.Printf("init: unable to persist default config %q: %v", key, createErr)
+				}
 				ConfigCache.Store(key, valueDefault)
 			} else {
 				return err

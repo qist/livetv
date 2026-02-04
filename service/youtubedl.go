@@ -5,7 +5,9 @@ import (
 	"io"
 	"log"
 	"os/exec"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/qist/livetv/global"
 )
@@ -50,7 +52,13 @@ func RealGetYoutubeLiveM3U8(youtubeURL string) (string, error) {
 		log.Println(err)
 		return "", err
 	} else {
-		ctx, cancelFunc := context.WithTimeout(context.Background(), global.HttpClientTimeout)
+		timeout := global.HttpClientTimeout
+		if cfgTimeout, err := GetConfig("ytdl_timeout"); err == nil {
+			if sec, err := strconv.Atoi(cfgTimeout); err == nil && sec > 0 {
+				timeout = time.Duration(sec) * time.Second
+			}
+		}
+		ctx, cancelFunc := context.WithTimeout(context.Background(), timeout)
 		defer cancelFunc()
 		log.Println(YtdlCmd, ytdlArgs)
 		cmd := exec.CommandContext(ctx, YtdlCmd, ytdlArgs...)
@@ -68,20 +76,43 @@ func RealGetYoutubeLiveM3U8(youtubeURL string) (string, error) {
 			log.Println(err)
 			return "", err
 		}
-		stdoutBytes, err := io.ReadAll(stdout)
-		if err != nil {
+		var stdoutBytes []byte
+		var stderrBytes []byte
+		stdoutCh := make(chan error, 1)
+		stderrCh := make(chan error, 1)
+		go func() {
+			b, readErr := io.ReadAll(stdout)
+			stdoutBytes = b
+			stdoutCh <- readErr
+		}()
+		go func() {
+			b, readErr := io.ReadAll(stderr)
+			stderrBytes = b
+			stderrCh <- readErr
+		}()
+
+		waitErr := cmd.Wait()
+		if err := <-stdoutCh; err != nil {
 			log.Println(err)
 			return "", err
 		}
-		stderrBytes, err := io.ReadAll(stderr)
-		if err != nil {
+		if err := <-stderrCh; err != nil {
 			log.Println(err)
 			return "", err
 		}
-		if err := cmd.Wait(); err != nil {
-			log.Println("[YTDL stderr]", string(stderrBytes))
-			log.Println(err)
-			return "", err
+		if ctx.Err() == context.DeadlineExceeded {
+			if len(stderrBytes) > 0 {
+				log.Println("[YTDL stderr]", string(stderrBytes))
+			}
+			log.Println("[YTDL] timeout after", timeout)
+			return "", ctx.Err()
+		}
+		if waitErr != nil {
+			if len(stderrBytes) > 0 {
+				log.Println("[YTDL stderr]", string(stderrBytes))
+			}
+			log.Println(waitErr)
+			return "", waitErr
 		}
 		if len(stderrBytes) > 0 {
 			log.Println("[YTDL stderr]", string(stderrBytes))

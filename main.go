@@ -68,6 +68,11 @@ func main() {
 	if err != nil {
 		log.Panicf("init: %s\n", err)
 	}
+	if passOverride := os.Getenv("LIVETV_PASSWORD"); passOverride != "" {
+		if err := service.SetConfig("password", passOverride); err != nil {
+			log.Println("Failed to set password from LIVETV_PASSWORD:", err)
+		}
+	}
 	log.Println("LiveTV starting...")
 	go service.LoadChannelCache()
 	c := cron.New()
@@ -77,13 +82,25 @@ func main() {
 	}
 	c.Start()
 	sessionSecert, err := service.GetConfig("password")
-	if err != nil {
+	if err != nil || sessionSecert == "" {
 		sessionSecert = "sessionSecert"
 	}
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 	store := cookie.NewStore([]byte(sessionSecert))
 	router.Use(sessions.Sessions("mysession", store))
+	// Keep cookie settings simple so login works in all modes without extra config.
+	router.Use(func(c *gin.Context) {
+		sess := sessions.Default(c)
+		opts := sessions.Options{
+			Path:     "/",
+			MaxAge:   86400 * 30,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+		}
+		sess.Options(opts)
+		c.Next()
+	})
 	router.Static("/assert", "./assert")
 	route.Register(router)
 	srv := &http.Server{
@@ -102,7 +119,10 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Panicf("Server forced to shutdown: %s\n", err)
+		log.Printf("Server forced to shutdown: %s\n", err)
+		if closeErr := srv.Close(); closeErr != nil {
+			log.Printf("Server close error: %s\n", closeErr)
+		}
 	}
 	log.Println("Server exiting")
 	if logFile != nil {

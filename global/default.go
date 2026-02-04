@@ -10,10 +10,12 @@ import (
 var defaultConfigValue = map[string]string{
 	"ytdl_cmd":  "yt-dlp",
 	"ytdl_args": "-f b -g {url}",
+	"ytdl_timeout": "20",
 	"base_url":  "http://127.0.0.1:9000",
 	"password":  "password",
 	"m3u_filename": "lives.m3u",
 	"channel_param": "c",
+	"ts_timeout": "30",
 }
 
 var (

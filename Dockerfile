@@ -29,6 +29,8 @@ RUN set -ex \
         tzdata \
         ffmpeg \
         unzip \
+        nodejs \
+        npm \
     && update-ca-certificates
 
 # 设置工作目录

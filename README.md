@@ -41,6 +41,22 @@ When you use Kodi or similar player, you can consider using the M3U file URL in 
 
 yt-dlp document here => [https://github.com/yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
+## Troubleshooting Pull Failures
+
+If the pull URL fails, try the following in order (from simple to more advanced):
+
+1. First, append runtime and component parameters:
+
+```bash
+--js-runtimes deno --remote-components ejs:npm -f b -g {url}
+```
+
+2. If it still fails, add the player client and User-Agent:
+
+```bash
+--js-runtimes deno --remote-components ejs:npm --extractor-args 'youtube:player_client=android,web' --add-header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36' -f b -g {url}
+```
+
 ## Cookies: How to Obtain and Configure
 
 Some channels require login. You can provide cookies so yt-dlp can access them.

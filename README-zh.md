@@ -42,6 +42,22 @@ PS:如果不指定外部存储目录，LiveTV！重新启动时将无法读取�
 
 yt-dlp的文档可以在这里找到=> [https://github.com/yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
+## 拉取失败排查
+
+如果拉取地址失败，可以按下面顺序尝试（从简单到复杂）：
+
+1. 先在命令后追加运行时与组件参数：
+
+```bash
+--js-runtimes deno --remote-components ejs:npm -f b -g {url}
+```
+
+2. 如果还是不可以，再在此基础上追加播放器与 UA：
+
+```bash
+--js-runtimes deno --remote-components ejs:npm --extractor-args 'youtube:player_client=android,web' --add-header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36' -f b -g {url}
+```
+
 ## Cookies 获取与配置
 
 当部分频道需要登录才能访问时，可以配置 cookies 让 yt-dlp 正常拉流。

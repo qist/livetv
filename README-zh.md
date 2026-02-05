@@ -52,11 +52,17 @@ yt-dlp的文档可以在这里找到=> [https://github.com/yt-dlp/yt-dlp](https:
 --js-runtimes deno --remote-components ejs:npm -f b -g {url}
 ```
 
+说明：
+- `--js-runtimes deno --remote-components ejs:npm` 启用 JS 解析器（部分 YouTube 页面需要）。
+- 该参数同样支持点播（VOD）解析。
+
 2. 如果还是不可以，再在此基础上追加播放器与 UA：
 
 ```bash
---js-runtimes deno --remote-components ejs:npm --extractor-args 'youtube:player_client=android,web' --add-header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36' -f b -g {url}
+--js-runtimes deno --remote-components ejs:npm --extractor-args 'youtube:player_client=web' --add-header "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36" -f b -g {url}
 ```
+
+说明：在 Web 表单/配置里填写 `ytdl_args` 时，建议用单引号包住 `--extractor-args` 的值，避免被错误拆分。
 
 ## Cookies 获取与配置
 
@@ -110,6 +116,10 @@ yt-dlp的文档可以在这里找到=> [https://github.com/yt-dlp/yt-dlp](https:
 ### 7. 版本号
 - 启动时显示版本信息
 - 当前版本: 1.0.0
+
+### 8. yt-dlp 参数动态生效
+- 修改 `ytdl_cmd` / `ytdl_args` / `ytdl_cookies` / `ytdl_timeout` 后无需重启
+- 变更会自动清空缓存并立即使用新参数
 
 nginx 代理设置
 

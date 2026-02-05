@@ -93,3 +93,14 @@ func UpdateURLCache() {
 		return true
 	})
 }
+
+// ResetYtdlCaches clears cached URLs and failure tracking so updated yt-dlp
+// parameters take effect immediately without restart.
+func ResetYtdlCaches() {
+	global.URLCache.Range(func(k, v interface{}) bool {
+		global.URLCache.Delete(k)
+		return true
+	})
+	channelFailures = make(map[string]int)
+	failedChannels = make(map[string]time.Time)
+}

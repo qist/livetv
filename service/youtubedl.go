@@ -48,7 +48,7 @@ func RealGetYoutubeLiveM3U8(youtubeURL string) (string, error) {
 		log.Println(err)
 		return "", err
 	}
-	ytdlArgs := strings.Fields(YtdlArgs)
+	ytdlArgs := splitArgs(YtdlArgs)
 	for i, v := range ytdlArgs {
 		if strings.EqualFold(v, "{url}") {
 			ytdlArgs[i] = youtubeURL
@@ -137,4 +137,49 @@ func RealGetYoutubeLiveM3U8(youtubeURL string) (string, error) {
 		}
 		return strings.TrimSpace(string(stdoutBytes)), nil
 	}
+}
+
+// splitArgs parses a command-line string into arguments with shell-like quoting.
+// It supports single quotes, double quotes, and backslash escapes.
+func splitArgs(s string) []string {
+	var args []string
+	var buf strings.Builder
+	inSingle := false
+	inDouble := false
+	escaped := false
+
+	flush := func() {
+		if buf.Len() > 0 {
+			args = append(args, buf.String())
+			buf.Reset()
+		}
+	}
+
+	for i := 0; i < len(s); i++ {
+		ch := s[i]
+		if escaped {
+			buf.WriteByte(ch)
+			escaped = false
+			continue
+		}
+		if ch == '\\' && !inSingle {
+			escaped = true
+			continue
+		}
+		if ch == '\'' && !inDouble {
+			inSingle = !inSingle
+			continue
+		}
+		if ch == '"' && !inSingle {
+			inDouble = !inDouble
+			continue
+		}
+		if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r') && !inSingle && !inDouble {
+			flush()
+			continue
+		}
+		buf.WriteByte(ch)
+	}
+	flush()
+	return args
 }

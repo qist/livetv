@@ -226,6 +226,7 @@ func UpdateConfigHandler(c *gin.Context) {
 	if sessions.Default(c).Get("logined") != true {
 		c.Redirect(http.StatusFound, "/login")
 	}
+	ytdlChanged := false
 	ytdlCmd := c.PostForm("cmd")
 	ytdlArgs := c.PostForm("args")
 	ytdlCookiesContent, hasYtdlCookiesContent := c.GetPostForm("cookies_content")
@@ -244,6 +245,7 @@ func UpdateConfigHandler(c *gin.Context) {
 			})
 			return
 		}
+		ytdlChanged = true
 	}
 	if len(ytdlArgs) > 0 {
 		err := service.SetConfig("ytdl_args", ytdlArgs)
@@ -254,6 +256,7 @@ func UpdateConfigHandler(c *gin.Context) {
 			})
 			return
 		}
+		ytdlChanged = true
 	}
 	if hasYtdlCookiesDomain {
 		err := service.SetConfig("ytdl_cookies_domain", strings.TrimSpace(ytdlCookiesDomain))
@@ -282,6 +285,7 @@ func UpdateConfigHandler(c *gin.Context) {
 				})
 				return
 			}
+			ytdlChanged = true
 		} else {
 			finalContent := cleanContent
 			if !looksLikeNetscapeCookies(finalContent) {
@@ -322,6 +326,7 @@ func UpdateConfigHandler(c *gin.Context) {
 				})
 				return
 			}
+			ytdlChanged = true
 		}
 	}
 	if len(ytdlTimeout) > 0 {
@@ -333,6 +338,7 @@ func UpdateConfigHandler(c *gin.Context) {
 			})
 			return
 		}
+		ytdlChanged = true
 	}
 	if len(baseUrl) > 0 {
 		err := service.SetConfig("base_url", baseUrl)
@@ -373,6 +379,9 @@ func UpdateConfigHandler(c *gin.Context) {
 			})
 			return
 		}
+	}
+	if ytdlChanged {
+		service.ResetYtdlCaches()
 	}
 	c.Redirect(http.StatusFound, "/")
 }

@@ -51,10 +51,14 @@ If the pull URL fails, try the following in order (from simple to more advanced)
 --js-runtimes deno --remote-components ejs:npm -f b -g {url}
 ```
 
+Notes:
+- `--js-runtimes deno --remote-components ejs:npm` enables JS-based extractors (required for some YouTube pages).
+- This parameter set also works for VOD parsing.
+
 2. If it still fails, add the player client and User-Agent:
 
 ```bash
---js-runtimes deno --remote-components ejs:npm --extractor-args 'youtube:player_client=android,web' --add-header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36' -f b -g {url}
+--js-runtimes deno --remote-components ejs:npm --extractor-args 'youtube:player_client=web' --add-header "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36" -f b -g {url}
 ```
 
 ## Cookies: How to Obtain and Configure
@@ -108,6 +112,10 @@ Some channels require login. You can provide cookies so yt-dlp can access them.
 ### 7. Version Number
 - Displays version information on startup
 - Current version: 1.0.0
+
+### 8. Dynamic yt-dlp Parameters
+- Changes to `ytdl_cmd` / `ytdl_args` / `ytdl_cookies` / `ytdl_timeout` take effect without restart
+- Cache is cleared automatically so new parameters apply immediately
 
 Document Translate by [DeepL](https://www.deepl.com/zh/translator)
 

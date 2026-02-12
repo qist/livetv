@@ -60,6 +60,7 @@ yt-dlp的文档可以在这里找到=> [https://github.com/yt-dlp/yt-dlp](https:
 
 ```bash
 --js-runtimes deno --remote-components ejs:npm --extractor-args 'youtube:player_client=web' --add-header "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36" -f b -g {url}
+--js-runtimes deno --remote-components ejs:npm --extractor-args 'youtube:player-client=android' -f b -g {url}
 ```
 
 说明：在 Web 表单/配置里填写 `ytdl_args` 时，建议用单引号包住 `--extractor-args` 的值，避免被错误拆分。

@@ -59,7 +59,7 @@ yt-dlp的文档可以在这里找到=> [https://github.com/yt-dlp/yt-dlp](https:
 2. 如果还是不可以，再在此基础上追加播放器与 UA：
 
 ```bash
---js-runtimes deno --remote-components ejs:npm --extractor-args 'youtube:player_client=web' --add-header "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36" -f b -g {url}
+--js-runtimes deno --remote-components ejs:npm --extractor-args 'youtube:player-client=web' --add-header "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36" -f b -g {url}
 --js-runtimes deno --remote-components ejs:npm --extractor-args 'youtube:player-client=android' -f b -g {url}
 ```
 

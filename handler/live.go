@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"context"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -15,6 +17,18 @@ import (
 	"github.com/qist/livetv/util"
 )
 
+var hopHeaders = map[string]struct{}{
+	"Connection":          {},
+	"Proxy-Connection":    {},
+	"Keep-Alive":          {},
+	"Proxy-Authenticate":  {},
+	"Proxy-Authorization": {},
+	"Te":                  {},
+	"Trailer":             {},
+	"Transfer-Encoding":   {},
+	"Upgrade":             {},
+}
+
 func M3UHandler(c *gin.Context) {
 	content, err := service.M3UGenerate()
 	if err != nil {
@@ -22,7 +36,9 @@ func M3UHandler(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	c.Data(http.StatusOK, "application/vnd.apple.mpegurl", []byte(content))
+	c.Header("Content-Type", "application/vnd.apple.mpegurl")
+	c.Status(http.StatusOK)
+	_, _ = io.WriteString(c.Writer, content)
 }
 
 func LiveHandler(c *gin.Context) {
@@ -63,8 +79,7 @@ func LiveHandler(c *gin.Context) {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
-		client := http.Client{Timeout: global.HttpClientTimeout}
-		resp, err := client.Get(liveM3U8)
+		resp, err := global.PlaylistHTTPClient.Get(liveM3U8)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatus(http.StatusInternalServerError)
@@ -102,7 +117,9 @@ func LiveHandler(c *gin.Context) {
 		}
 		global.M3U8Cache.Set(channelCacheKey, m3u8Body, 3*time.Second)
 	}
-	c.Data(http.StatusOK, "application/vnd.apple.mpegurl", []byte(m3u8Body))
+	c.Header("Content-Type", "application/vnd.apple.mpegurl")
+	c.Status(http.StatusOK)
+	_, _ = io.WriteString(c.Writer, m3u8Body)
 }
 
 func TsProxyHandler(c *gin.Context) {
@@ -118,29 +135,43 @@ func TsProxyHandler(c *gin.Context) {
 		return
 	}
 	timeout := global.HttpClientTimeout
-	if cfgTimeout, err := service.GetConfig("ts_timeout"); err == nil {
-		if sec, err := strconv.Atoi(cfgTimeout); err == nil && sec > 0 {
+	if cfgTimeout, configErr := service.GetConfig("ts_timeout"); configErr == nil {
+		if sec, parseErr := strconv.Atoi(cfgTimeout); parseErr == nil && sec > 0 {
 			timeout = time.Duration(sec) * time.Second
 		}
 	}
-	client := http.Client{Timeout: timeout}
-	resp, err := client.Get(remoteURL)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), timeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, c.Request.Method, remoteURL, nil)
+	if err != nil {
+		log.Println(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	copyHeaders(req.Header, c.Request.Header)
+	resp, err := global.StreamHTTPClient.Do(req)
 	if err != nil {
 		log.Println(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 	defer resp.Body.Close()
+	copyHeaders(c.Writer.Header(), resp.Header)
 	c.Header("Cache-Control", "no-store")
 	c.Header("Pragma", "no-cache")
 	c.Header("Expires", "0")
 	c.Header("X-Accel-Buffering", "no")
-	c.DataFromReader(http.StatusOK, resp.ContentLength, resp.Header.Get("Content-Type"), resp.Body, nil)
+	c.Status(resp.StatusCode)
+	buffer := global.IOBufferPool.Get().([]byte)
+	defer global.IOBufferPool.Put(buffer)
+	if _, err := io.CopyBuffer(c.Writer, resp.Body, buffer); err != nil && !errors.Is(err, context.Canceled) {
+		log.Println(err)
+	}
 }
 
 func CacheHandler(c *gin.Context) {
 	var sb strings.Builder
-	global.URLCache.Range(func(k, v interface{}) bool {
+	global.URLCache.Range(func(k, v any) bool {
 		sb.WriteString(k.(string))
 		sb.WriteString(" => ")
 		sb.WriteString(v.(string))
@@ -148,4 +179,16 @@ func CacheHandler(c *gin.Context) {
 		return true
 	})
 	c.Data(http.StatusOK, "text/plain", []byte(sb.String()))
+}
+
+func copyHeaders(dst, src http.Header) {
+	for key, values := range src {
+		if _, skip := hopHeaders[http.CanonicalHeaderKey(key)]; skip {
+			continue
+		}
+		dst.Del(key)
+		for _, value := range values {
+			dst.Add(key, value)
+		}
+	}
 }

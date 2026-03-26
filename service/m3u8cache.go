@@ -27,15 +27,14 @@ func LoadChannelCache() {
 		return
 	}
 	for _, v := range channels {
-		log.Println("caching", v.URL)
-		liveURL, err := RealGetYoutubeLiveM3U8(v.URL)
+		channelURL := normalizeYoutubeURL(v.URL)
+		log.Println("caching", channelURL)
+		_, err := GetYoutubeLiveM3U8(channelURL)
 		if err != nil {
 			log.Println(err)
-			// Don't return on single channel failure
 			continue
 		}
-		global.URLCache.Store(v.URL, liveURL)
-		log.Println(v.URL, "cached")
+		log.Println(channelURL, "cached")
 	}
 }
 
@@ -46,40 +45,34 @@ func UpdateURLCache() {
 		return
 	}
 	for _, v := range channels {
-		// Check if channel is in cooldown period
-		if failTime, failed := failedChannels[v.URL]; failed {
+		channelURL := normalizeYoutubeURL(v.URL)
+		if failTime, failed := failedChannels[channelURL]; failed {
 			if time.Since(failTime) < failureCooldown {
-				log.Println("skipping failed channel (cooldown):", v.URL)
+				log.Println("skipping failed channel (cooldown):", channelURL)
 				continue
 			}
-			// Cooldown expired, remove from failed list
-			delete(failedChannels, v.URL)
-			delete(channelFailures, v.URL)
+			delete(failedChannels, channelURL)
+			delete(channelFailures, channelURL)
 		}
 
-		log.Println("caching", v.URL)
-		liveURL, err := RealGetYoutubeLiveM3U8(v.URL)
+		log.Println("caching", channelURL)
+		_, err := GetYoutubeLiveM3U8(channelURL)
 		if err != nil {
 			log.Println(err)
-			// Track failure
-			channelFailures[v.URL]++
-			log.Println("channel failure count:", v.URL, channelFailures[v.URL])
+			channelFailures[channelURL]++
+			log.Println("channel failure count:", channelURL, channelFailures[channelURL])
 
-			// If max failures reached, put in cooldown
-			if channelFailures[v.URL] >= maxFailures {
-				log.Println("channel failed too many times, putting in cooldown:", v.URL)
-				failedChannels[v.URL] = time.Now()
+			if channelFailures[channelURL] >= maxFailures {
+				log.Println("channel failed too many times, putting in cooldown:", channelURL)
+				failedChannels[channelURL] = time.Now()
 			}
 		} else {
-			// Success, reset failure count
-			delete(channelFailures, v.URL)
-			delete(failedChannels, v.URL)
-
-			global.URLCache.Store(v.URL, liveURL)
-			log.Println(v.URL, "cached")
+			delete(channelFailures, channelURL)
+			delete(failedChannels, channelURL)
+			log.Println(channelURL, "cached")
 		}
 	}
-	global.URLCache.Range(func(k, v interface{}) bool {
+	global.URLCache.Range(func(k, v any) bool {
 		value := v.(string)
 		regex := regexp.MustCompile(`/expire/(\d+)/`)
 		matched := regex.FindStringSubmatch(value)
@@ -94,13 +87,12 @@ func UpdateURLCache() {
 	})
 }
 
-// ResetYtdlCaches clears cached URLs and failure tracking so updated yt-dlp
-// parameters take effect immediately without restart.
 func ResetYtdlCaches() {
-	global.URLCache.Range(func(k, v interface{}) bool {
+	global.URLCache.Range(func(k, v any) bool {
 		global.URLCache.Delete(k)
 		return true
 	})
 	channelFailures = make(map[string]int)
 	failedChannels = make(map[string]time.Time)
+	resetYtdlFailureState()
 }

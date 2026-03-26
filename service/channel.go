@@ -13,6 +13,7 @@ func GetAllChannel() (channels []model.Channel, err error) {
 }
 
 func SaveChannel(channel model.Channel) error {
+	channel.URL = normalizeYoutubeURL(channel.URL)
 	if channel.ID == 0 {
 		err := global.DB.Create(&channel).Error
 		if err != nil {

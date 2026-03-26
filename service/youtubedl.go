@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -9,35 +10,82 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
+	"unicode"
 
 	"github.com/qist/livetv/global"
 )
 
+type ytdlCall struct {
+	done    chan struct{}
+	liveURL string
+	err     error
+}
+
+type ytdlFailure struct {
+	err   error
+	until time.Time
+}
+
+var (
+	ytdlCallMu        sync.Mutex
+	ytdlInflightCalls = make(map[string]*ytdlCall)
+	ytdlFailures      = make(map[string]ytdlFailure)
+)
+
+const ytdlFailureBackoff = time.Minute
+
 func GetYoutubeLiveM3U8(youtubeURL string) (string, error) {
-	liveURL, ok := global.URLCache.Load(youtubeURL)
-	if ok {
-		return liveURL.(string), nil
-	} else {
-		log.Println("cache miss", youtubeURL)
-		liveURL, err := RealGetYoutubeLiveM3U8(youtubeURL)
-		if err != nil {
-			log.Println(err)
-			log.Println("[YTDL]", liveURL)
-			return "", err
-		} else {
-			global.URLCache.Store(youtubeURL, liveURL)
-			return liveURL, nil
-		}
+	normalizedURL := normalizeYoutubeURL(youtubeURL)
+	if normalizedURL == "" {
+		return "", fmt.Errorf("empty youtube url")
 	}
+	if liveURL, ok := global.URLCache.Load(normalizedURL); ok {
+		return liveURL.(string), nil
+	}
+	if cachedErr := getYtdlFailure(normalizedURL); cachedErr != nil {
+		log.Println("skip yt-dlp retry during backoff", normalizedURL)
+		return "", cachedErr
+	}
+
+	call, waiting := getOrCreateYtdlCall(normalizedURL)
+	if waiting {
+		<-call.done
+		return call.liveURL, call.err
+	}
+	defer finishYtdlCall(normalizedURL, call)
+
+	if liveURL, ok := global.URLCache.Load(normalizedURL); ok {
+		call.liveURL = liveURL.(string)
+		return call.liveURL, nil
+	}
+
+	log.Println("cache miss", normalizedURL)
+	call.liveURL, call.err = RealGetYoutubeLiveM3U8(normalizedURL)
+	if call.err != nil {
+		log.Println(call.err)
+		log.Println("[YTDL]", call.liveURL)
+		if shouldBackoffYtdl(call.err) {
+			setYtdlFailure(normalizedURL, call.err)
+		} else {
+			clearYtdlFailure(normalizedURL)
+		}
+		return "", call.err
+	}
+	clearYtdlFailure(normalizedURL)
+	global.URLCache.Store(normalizedURL, call.liveURL)
+	return call.liveURL, nil
 }
 
 func RealGetYoutubeLiveM3U8(youtubeURL string) (string, error) {
+	youtubeURL = normalizeYoutubeURL(youtubeURL)
 	YtdlCmd, err := GetConfig("ytdl_cmd")
 	if err != nil {
 		log.Println(err)
 		return "", err
 	}
+	YtdlCmd = strings.TrimSpace(YtdlCmd)
 	YtdlArgs, err := GetConfig("ytdl_args")
 	if err != nil {
 		log.Println(err)
@@ -48,11 +96,16 @@ func RealGetYoutubeLiveM3U8(youtubeURL string) (string, error) {
 		log.Println(err)
 		return "", err
 	}
-	ytdlArgs := splitArgs(YtdlArgs)
+	ytdlArgs := splitArgs(strings.TrimSpace(YtdlArgs))
+	hasURLArg := false
 	for i, v := range ytdlArgs {
 		if strings.EqualFold(v, "{url}") {
 			ytdlArgs[i] = youtubeURL
+			hasURLArg = true
 		}
+	}
+	if !hasURLArg {
+		ytdlArgs = append(ytdlArgs, youtubeURL)
 	}
 	ytdlCookies := strings.TrimSpace(YtdlCookies)
 	if ytdlCookies != "" {
@@ -129,8 +182,12 @@ func RealGetYoutubeLiveM3U8(youtubeURL string) (string, error) {
 			if len(stderrBytes) > 0 {
 				log.Println("[YTDL stderr]", string(stderrBytes))
 			}
-			log.Println(waitErr)
-			return "", waitErr
+			wrappedErr := waitErr
+			if parsedErr := buildYtdlError(waitErr, stderrBytes); parsedErr != nil {
+				wrappedErr = parsedErr
+			}
+			log.Println(wrappedErr)
+			return "", wrappedErr
 		}
 		if len(stderrBytes) > 0 {
 			log.Println("[YTDL stderr]", string(stderrBytes))
@@ -139,8 +196,97 @@ func RealGetYoutubeLiveM3U8(youtubeURL string) (string, error) {
 	}
 }
 
-// splitArgs parses a command-line string into arguments with shell-like quoting.
-// It supports single quotes, double quotes, and backslash escapes.
+func getOrCreateYtdlCall(cacheKey string) (*ytdlCall, bool) {
+	ytdlCallMu.Lock()
+	defer ytdlCallMu.Unlock()
+	if call, ok := ytdlInflightCalls[cacheKey]; ok {
+		return call, true
+	}
+	call := &ytdlCall{done: make(chan struct{})}
+	ytdlInflightCalls[cacheKey] = call
+	return call, false
+}
+
+func finishYtdlCall(cacheKey string, call *ytdlCall) {
+	ytdlCallMu.Lock()
+	delete(ytdlInflightCalls, cacheKey)
+	ytdlCallMu.Unlock()
+	close(call.done)
+}
+
+func getYtdlFailure(cacheKey string) error {
+	ytdlCallMu.Lock()
+	defer ytdlCallMu.Unlock()
+	failure, ok := ytdlFailures[cacheKey]
+	if !ok {
+		return nil
+	}
+	if time.Now().After(failure.until) {
+		delete(ytdlFailures, cacheKey)
+		return nil
+	}
+	return failure.err
+}
+
+func setYtdlFailure(cacheKey string, err error) {
+	ytdlCallMu.Lock()
+	defer ytdlCallMu.Unlock()
+	ytdlFailures[cacheKey] = ytdlFailure{
+		err:   fmt.Errorf("yt-dlp temporary backoff for 1m: %w", err),
+		until: time.Now().Add(ytdlFailureBackoff),
+	}
+}
+
+func clearYtdlFailure(cacheKey string) {
+	ytdlCallMu.Lock()
+	defer ytdlCallMu.Unlock()
+	delete(ytdlFailures, cacheKey)
+}
+
+func resetYtdlFailureState() {
+	ytdlCallMu.Lock()
+	defer ytdlCallMu.Unlock()
+	ytdlInflightCalls = make(map[string]*ytdlCall)
+	ytdlFailures = make(map[string]ytdlFailure)
+}
+
+func shouldBackoffYtdl(err error) bool {
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "http error 429") ||
+		strings.Contains(message, "too many requests") ||
+		strings.Contains(message, "sign in to confirm") ||
+		strings.Contains(message, "not a bot") ||
+		strings.Contains(message, "visitor data")
+}
+
+func buildYtdlError(waitErr error, stderrBytes []byte) error {
+	stderrText := strings.TrimSpace(string(stderrBytes))
+	if stderrText == "" {
+		return waitErr
+	}
+	lowerText := strings.ToLower(stderrText)
+	if strings.Contains(lowerText, "sign in to confirm you’re not a bot") ||
+		strings.Contains(lowerText, "sign in to confirm you're not a bot") ||
+		strings.Contains(lowerText, "http error 429") ||
+		strings.Contains(lowerText, "too many requests") {
+		return fmt.Errorf("youtube requires cookies or visitor data: %w", waitErr)
+	}
+	return fmt.Errorf("%w: %s", waitErr, stderrText)
+}
+
+func normalizeYoutubeURL(s string) string {
+	s = strings.TrimSpace(s)
+	s = strings.TrimFunc(s, func(r rune) bool {
+		switch r {
+		case '`', '\'', '"', '“', '”', '‘', '’', '<', '>':
+			return true
+		default:
+			return unicode.IsSpace(r)
+		}
+	})
+	return strings.TrimSpace(s)
+}
+
 func splitArgs(s string) []string {
 	var args []string
 	var buf strings.Builder

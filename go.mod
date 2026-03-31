@@ -3,7 +3,7 @@ module github.com/qist/livetv
 go 1.25.0
 
 require (
-	github.com/gin-contrib/sessions v1.0.4
+	github.com/gin-contrib/sessions v1.1.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/jinzhu/gorm v1.9.16
 	github.com/joho/godotenv v1.5.1

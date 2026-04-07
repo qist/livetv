@@ -49,6 +49,9 @@ yt-dlp的文档可以在这里找到=> [https://github.com/yt-dlp/yt-dlp](https:
 1. 先在命令后追加运行时与组件参数：
 
 ```bash
+优先使用:
+--js-runtimes node -f b -g {url}
+然后尝试使用：
 --js-runtimes deno --remote-components ejs:npm -f b -g {url}
 ```
 

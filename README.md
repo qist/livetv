@@ -48,6 +48,9 @@ If the pull URL fails, try the following in order (from simple to more advanced)
 1. First, append runtime and component parameters:
 
 ```bash
+Preferred:
+--js-runtimes node -f b -g {url}
+Then try using：
 --js-runtimes deno --remote-components ejs:npm -f b -g {url}
 ```
 

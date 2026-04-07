@@ -57,7 +57,7 @@ Then try using：
 Notes:
 - `--js-runtimes deno --remote-components ejs:npm` enables JS-based extractors (required for some YouTube pages).
 - This parameter set also works for VOD parsing.
-
+- Fallback to node when deno is unavailable.
 2. If it still fails, add the player client and User-Agent:
 
 ```bash

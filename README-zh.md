@@ -58,7 +58,7 @@ yt-dlp的文档可以在这里找到=> [https://github.com/yt-dlp/yt-dlp](https:
 说明：
 - `--js-runtimes deno --remote-components ejs:npm` 启用 JS 解析器（部分 YouTube 页面需要）。
 - 该参数同样支持点播（VOD）解析。
-
+- deno 解析不可用就使用node解析。
 2. 如果还是不可以，再在此基础上追加播放器与 UA：
 
 ```bash

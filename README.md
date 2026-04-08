@@ -85,39 +85,52 @@ Some channels require login. You can provide cookies so yt-dlp can access them.
 
 ## New Features
 
-### 1. Customizable M3U Playlist Filename
-- Default: `lives.m3u`
-- Can be customized in the configuration management section
-- Changes take effect immediately without server restart
+### 1. Customizable Playlist Base Name
+- The setting is a base name without extension. Default: `lives`
+- Actual endpoints are derived from the base name:
+  - M3U: `/{base}.m3u` (e.g., `/lives.m3u`)
+  - TXT: `/{base}.txt` (e.g., `/lives.txt`)
+- The form label reflects “no extension”. Changes take effect immediately
 
 ### 2. Customizable Channel Parameter
 - Default: `c` (e.g., `live.m3u8?c=1`)
 - Can be customized in the configuration management section
 
-### 3. Custom Channel IDs
+### 3. Group Support (standard M3U groups)
+- Every channel includes `group-title`, default group is `youtube`
+- Group input uses a datalist with suggestions and no prefilled value; clicking shows all existing groups
+- Backend introduces a separate `groups` table; saving a channel auto-creates/associates the group by name for better querying
+- The special `youtube` group can map to multiple standard titles via config key `youtube_m3u_groups` (default `YouTube`). If needed, adjust this key in the database `config` table
+
+### 4. TXT Playlist
+- TXT entry is shown on the index page
+- TXT shares the same base name as M3U (see “Playlist Base Name”)
+- TXT format is grouped; each group starts with `GroupName,#genre#`
+
+### 5. Custom Channel IDs
 - Supports custom string IDs for channels (e.g., "news", "sports")
 - Each channel can have a unique custom ID
 - Displayed in the channel list
 
-### 4. Log Output Mode
+### 6. Log Output Mode
 - Default: Standard output only
 - Environment variable `LIVETV_LOG_FILE=1` enables file logging
 - Logs stored in `./data/livetv.log`
 
-### 5. Error Handling for Scheduled Caching
+### 7. Error Handling for Scheduled Caching
 - Tracks failed channels
 - Puts channels in cooldown after 3 consecutive failures
 - Automatically retries after 24-hour cooldown
 
-### 6. Automatic Directory Creation
+### 8. Automatic Directory Creation
 - Creates data directory if it doesn't exist
 - Ensures proper storage structure for logs and database
 
-### 7. Version Number
+### 9. Version Number
 - Displays version information on startup
 - Current version: 1.0.0
 
-### 8. Dynamic yt-dlp Parameters
+### 10. Dynamic yt-dlp Parameters
 - Changes to `ytdl_cmd` / `ytdl_args` / `ytdl_cookies` / `ytdl_timeout` take effect without restart
 - Cache is cleared automatically so new parameters apply immediately
 

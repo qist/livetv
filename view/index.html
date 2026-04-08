@@ -32,6 +32,15 @@
               <input type="text" class="form-control" id="inputChannelCustomID" name="custom_id" placeholder="e.g., news, sports, custom-channel">
             </div>
             <div class="form-group">
+              <label for="inputChannelGroupName">Group</label>
+              <input type="text" class="form-control" id="inputChannelGroupName" name="group_name" list="groupNameList" value="" placeholder="Select or type (default: youtube)">
+              <datalist id="groupNameList">
+                {{range .GroupNames}}
+                <option value="{{.}}"></option>
+                {{end}}
+              </datalist>
+            </div>
+            <div class="form-group">
               <label for="inputChannelLiveURL">URL</label>
               <input type="text" class="form-control" id="inputChannelLiveURL" name="url">
             </div>
@@ -48,6 +57,7 @@
               <th>#</th>
               <th>Custom ID</th>
               <th>Channel</th>
+              <th>Group</th>
               <th>Live</th>
               <th>M3U8</th>
               <th>Proxy</th>
@@ -58,10 +68,11 @@
               <td>{{.ID}}</td>
               <td>{{ if .CustomID }}{{.CustomID}}{{ else }}-{{ end }}</td>
               <td>{{.Name}}</td>
+              <td>{{ if eq .ID 0 }}-{{ else }}{{ if .GroupName }}{{.GroupName}}{{ else }}youtube{{ end }}{{ end }}</td>
               <td>{{.URL}}</td>
               <td>{{.M3U8}}</td>
               <td>{{ if .Proxy }}<span class="glyphicon glyphicon-ok" aria-hidden="true"></span>{{ end }}</td>
-              <td><a href="/api/delchannel?id={{.ID}}"><span class="glyphicon glyphicon-trash" aria-hidden="true"></span></a></td>
+              <td>{{ if ne .ID 0 }}<a href="/api/delchannel?id={{.ID}}"><span class="glyphicon glyphicon-trash" aria-hidden="true"></span></a>{{ end }}</td>
           </tr>
           {{end}}
         </table>
@@ -116,8 +127,8 @@
                 </div>
               </div>
               <div class="form-group">
-                <label for="inputM3UFilename">M3U Filename</label>
-                <input type="text" class="form-control" id="inputM3UFilename" name="m3u_filename" value="{{.Configs.M3UFilename}}" placeholder="e.g., lives.m3u">
+                <label for="inputM3UFilename">M3U Filename (no extension)</label>
+                <input type="text" class="form-control" id="inputM3UFilename" name="m3u_filename" value="{{.Configs.M3UFilename}}" placeholder="e.g., lives">
               </div>
               <div class="form-group">
                 <label for="inputChannelParam">Channel Parameter</label>

@@ -32,6 +32,15 @@
               <input type="text" class="form-control" id="inputChannelCustomID" name="custom_id" placeholder="例如: news, sports, custom-channel">
             </div>
             <div class="form-group">
+              <label for="inputChannelGroupName">分组</label>
+              <input type="text" class="form-control" id="inputChannelGroupName" name="group_name" list="groupNameList" value="" placeholder="下拉选择或手动输入（默认：youtube）">
+              <datalist id="groupNameList">
+                {{range .GroupNames}}
+                <option value="{{.}}"></option>
+                {{end}}
+              </datalist>
+            </div>
+            <div class="form-group">
               <label for="inputChannelLiveURL">直播URL</label>
               <input type="text" class="form-control" id="inputChannelLiveURL" name="url">
             </div>
@@ -48,6 +57,7 @@
               <th>#</th>
               <th>自定义ID</th>
               <th>频道</th>
+              <th>分组</th>
               <th>直播URL</th>
               <th>M3U8文档URL</th>
               <th>代理直播数据流</th>
@@ -58,10 +68,11 @@
               <td>{{.ID}}</td>
               <td>{{ if .CustomID }}{{.CustomID}}{{ else }}-{{ end }}</td>
               <td>{{.Name}}</td>
+              <td>{{ if eq .ID 0 }}-{{ else }}{{ if .GroupName }}{{.GroupName}}{{ else }}youtube{{ end }}{{ end }}</td>
               <td>{{.URL}}</td>
               <td>{{.M3U8}}</td>
               <td>{{ if .Proxy }}<span class="glyphicon glyphicon-ok" aria-hidden="true"></span>{{ end }}</td>
-              <td><a href="/api/delchannel?id={{.ID}}"><span class="glyphicon glyphicon-trash" aria-hidden="true"></span></a></td>
+              <td>{{ if ne .ID 0 }}<a href="/api/delchannel?id={{.ID}}"><span class="glyphicon glyphicon-trash" aria-hidden="true"></span></a>{{ end }}</td>
           </tr>
           {{end}}
         </table>
@@ -116,8 +127,8 @@
                 </div>
               </div>
               <div class="form-group">
-                <label for="inputM3UFilename">M3U 文件名</label>
-                <input type="text" class="form-control" id="inputM3UFilename" name="m3u_filename" value="{{.Configs.M3UFilename}}" placeholder="例如: lives.m3u">
+                <label for="inputM3UFilename">M3U 文件名（不含扩展名）</label>
+                <input type="text" class="form-control" id="inputM3UFilename" name="m3u_filename" value="{{.Configs.M3UFilename}}" placeholder="例如: lives">
               </div>
               <div class="form-group">
                 <label for="inputChannelParam">频道参数</label>

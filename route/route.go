@@ -11,6 +11,7 @@ func Register(r *gin.Engine) {
 
 	// Register default M3U route
 	r.GET("/lives.m3u", handler.M3UHandler)
+	r.GET("/lives.txt", handler.TxtHandler)
 
 	// Add middleware to handle configurable M3U filename
 	r.Use(func(c *gin.Context) {
@@ -28,13 +29,22 @@ func Register(r *gin.Engine) {
 			return
 		}
 
-		// Check if this filename matches the configured M3U filename
-		m3uFilename, err := service.GetConfig("m3u_filename")
-		if err == nil && filename == m3uFilename && filename != "lives.m3u" {
+		// Check if this filename matches the configured playlist base name
+		m3uFilenameValue, err := service.GetConfig("m3u_filename")
+		if err == nil {
+			m3uFilename := service.DeriveM3UFilename(m3uFilenameValue)
+			if filename == m3uFilename && filename != "lives.m3u" {
 			// Handle M3U request
 			handler.M3UHandler(c)
 			c.Abort()
 			return
+			}
+			txtFilename := service.DeriveTxtFilename(m3uFilenameValue)
+			if filename == txtFilename && filename != "lives.txt" {
+				handler.TxtHandler(c)
+				c.Abort()
+				return
+			}
 		}
 
 		c.Next()

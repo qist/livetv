@@ -7,6 +7,7 @@ type Channel struct {
 	URL      string
 	M3U8     string
 	Proxy    bool
+	GroupName string
 }
 
 type Config struct {
@@ -20,4 +21,5 @@ type Config struct {
 	M3UFilename  string
 	ChannelParam string
 	TSTimeout    string
+	YoutubeM3UGroups string
 }

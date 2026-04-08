@@ -17,9 +17,10 @@ var defaultConfigValue = map[string]string{
 	"ytdl_timeout":        "20",
 	"base_url":            "http://127.0.0.1:9000",
 	"password":            "password",
-	"m3u_filename":        "lives.m3u",
+	"m3u_filename":        "lives",
 	"channel_param":       "c",
 	"ts_timeout":          "30",
+	"youtube_m3u_groups":  "YouTube",
 }
 
 var (

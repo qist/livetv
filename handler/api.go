@@ -41,8 +41,11 @@ func IndexHandler(c *gin.Context) {
 	}
 	m3uFilename, err := service.GetConfig("m3u_filename")
 	if err != nil {
-		m3uFilename = "lives.m3u"
+		m3uFilename = "lives"
 	}
+	m3uFilenameValue := m3uFilename
+	m3uFilename = service.DeriveM3UFilename(m3uFilenameValue)
+	txtFilename := service.DeriveTxtFilename(m3uFilenameValue)
 	channelParam, err := service.GetConfig("channel_param")
 	if err != nil {
 		channelParam = "c"
@@ -67,25 +70,41 @@ func IndexHandler(c *gin.Context) {
 	} else {
 		m3uName = "M3U File"
 	}
-	channels := make([]Channel, len(channelModels)+1)
+	var txtName string
+	if isChinese {
+		txtName = "TXT 频道列表"
+	} else {
+		txtName = "TXT File"
+	}
+	channels := make([]Channel, len(channelModels)+2)
 	channels[0] = Channel{
 		ID:   0,
 		Name: m3uName,
 		M3U8: baseUrl + "/" + m3uFilename,
+	}
+	channels[1] = Channel{
+		ID:   0,
+		Name: txtName,
+		M3U8: baseUrl + "/" + txtFilename,
 	}
 	for i, v := range channelModels {
 		channelID := strconv.Itoa(int(v.ID))
 		if v.CustomID != "" {
 			channelID = v.CustomID
 		}
-		channels[i+1] = Channel{
-			ID:       v.ID,
-			CustomID: v.CustomID,
-			Name:     v.Name,
-			URL:      v.URL,
-			M3U8:     baseUrl + "/live.m3u8?" + channelParam + "=" + channelID,
-			Proxy:    v.Proxy,
+		channels[i+2] = Channel{
+			ID:        v.ID,
+			CustomID:  v.CustomID,
+			Name:      v.Name,
+			URL:       v.URL,
+			M3U8:      baseUrl + "/live.m3u8?" + channelParam + "=" + channelID,
+			Proxy:     v.Proxy,
+			GroupName: v.GroupName,
 		}
+	}
+	groupNames, err := service.GetAllGroupNames()
+	if err != nil {
+		groupNames = []string{service.DefaultGroupName}
 	}
 	conf, err := loadConfig()
 	if err != nil {
@@ -103,8 +122,9 @@ func IndexHandler(c *gin.Context) {
 		templateFilename = "index.html"
 	}
 	c.HTML(http.StatusOK, templateFilename, gin.H{
-		"Channels": channels,
-		"Configs":  conf,
+		"Channels":   channels,
+		"Configs":    conf,
+		"GroupNames": groupNames,
 	})
 }
 
@@ -154,9 +174,9 @@ func loadConfig() (Config, error) {
 		conf.BaseURL = burl
 	}
 	if m3uFilename, err := service.GetConfig("m3u_filename"); err != nil {
-		conf.M3UFilename = "lives.m3u"
+		conf.M3UFilename = "lives"
 	} else {
-		conf.M3UFilename = m3uFilename
+		conf.M3UFilename = service.NormalizePlaylistBaseName(m3uFilename)
 	}
 	if channelParam, err := service.GetConfig("channel_param"); err != nil {
 		conf.ChannelParam = "c"
@@ -168,6 +188,11 @@ func loadConfig() (Config, error) {
 	} else {
 		conf.TSTimeout = tsTimeout
 	}
+	if youtubeM3UGroups, err := service.GetConfig("youtube_m3u_groups"); err != nil {
+		conf.YoutubeM3UGroups = "YouTube"
+	} else {
+		conf.YoutubeM3UGroups = youtubeM3UGroups
+	}
 	return conf, nil
 }
 
@@ -178,16 +203,18 @@ func NewChannelHandler(c *gin.Context) {
 	chName := c.PostForm("name")
 	chURL := c.PostForm("url")
 	chCustomID := strings.TrimSpace(c.PostForm("custom_id"))
+	chGroupName := strings.TrimSpace(c.PostForm("group_name"))
 	if chName == "" || chURL == "" {
 		c.Redirect(http.StatusFound, "/")
 		return
 	}
 	chProxy := c.PostForm("proxy") != ""
 	mch := model.Channel{
-		CustomID: chCustomID,
-		Name:     chName,
-		URL:      chURL,
-		Proxy:    chProxy,
+		CustomID:  chCustomID,
+		Name:      chName,
+		URL:       chURL,
+		Proxy:     chProxy,
+		GroupName: chGroupName,
 	}
 	err := service.SaveChannel(mch)
 	if err != nil {
@@ -236,6 +263,7 @@ func UpdateConfigHandler(c *gin.Context) {
 	m3uFilename := c.PostForm("m3u_filename")
 	channelParam := c.PostForm("channel_param")
 	tsTimeout := c.PostForm("ts_timeout")
+	youtubeM3UGroups, hasYoutubeM3UGroups := c.GetPostForm("youtube_m3u_groups")
 	if len(ytdlCmd) > 0 {
 		err := service.SetConfig("ytdl_cmd", ytdlCmd)
 		if err != nil {
@@ -373,6 +401,19 @@ func UpdateConfigHandler(c *gin.Context) {
 	if len(tsTimeout) > 0 {
 		err := service.SetConfig("ts_timeout", tsTimeout)
 		if err != nil {
+			log.Println(err.Error())
+			c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+				"ErrMsg": err.Error(),
+			})
+			return
+		}
+	}
+	if hasYoutubeM3UGroups {
+		youtubeM3UGroups = strings.TrimSpace(youtubeM3UGroups)
+		if youtubeM3UGroups == "" {
+			youtubeM3UGroups = "YouTube"
+		}
+		if err := service.SetConfig("youtube_m3u_groups", youtubeM3UGroups); err != nil {
 			log.Println(err.Error())
 			c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 				"ErrMsg": err.Error(),

@@ -41,6 +41,18 @@ func M3UHandler(c *gin.Context) {
 	_, _ = io.WriteString(c.Writer, content)
 }
 
+func TxtHandler(c *gin.Context) {
+	content, err := service.TxtGenerate()
+	if err != nil {
+		log.Println(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.Header("Content-Type", "text/plain; charset=utf-8")
+	c.Status(http.StatusOK)
+	_, _ = io.WriteString(c.Writer, content)
+}
+
 func LiveHandler(c *gin.Context) {
 	var m3u8Body string
 	channelParam, err := service.GetConfig("channel_param")

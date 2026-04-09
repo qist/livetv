@@ -56,14 +56,14 @@ yt-dlp的文档可以在这里找到=> [https://github.com/yt-dlp/yt-dlp](https:
 ```
 
 说明：
-- `--js-runtimes deno --remote-components ejs:npm` 启用 JS 解析器（部分 YouTube 页面需要）。
+- `--js-runtimes node --remote-components ejs:npm` 启用 JS 解析器（部分 YouTube 页面需要）。
 - 该参数同样支持点播（VOD）解析。
 - deno 解析不可用就使用node解析。
 2. 如果还是不可以，再在此基础上追加播放器与 UA：
 
 ```bash
---js-runtimes deno --remote-components ejs:npm --extractor-args 'youtube:player-client=web' --add-header "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36" -f b -g {url}
---js-runtimes deno --remote-components ejs:npm --extractor-args 'youtube:player-client=android' -f b -g {url}
+--js-runtimes node --remote-components ejs:npm --extractor-args 'youtube:player-client=web' --add-header "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36" -f b -g {url}
+--js-runtimes node --remote-components ejs:npm --extractor-args 'youtube:player-client=android' -f b -g {url}
 ```
 
 说明：在 Web 表单/配置里填写 `ytdl_args` 时，建议用单引号包住 `--extractor-args` 的值，避免被错误拆分。

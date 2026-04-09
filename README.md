@@ -55,14 +55,14 @@ Then try using：
 ```
 
 Notes:
-- `--js-runtimes deno --remote-components ejs:npm` enables JS-based extractors (required for some YouTube pages).
+- `--js-runtimes node --remote-components ejs:npm` enables JS-based extractors (required for some YouTube pages).
 - This parameter set also works for VOD parsing.
 - If deno parsing is unavailable, use node parsing.
 2. If it still fails, add the player client and User-Agent:
 
 ```bash
---js-runtimes deno --remote-components ejs:npm --extractor-args 'youtube:player-client=web' --add-header "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36" -f b -g {url}
---js-runtimes deno --remote-components ejs:npm --extractor-args 'youtube:player-client=android' -f b -g {url}
+--js-runtimes node --remote-components ejs:npm --extractor-args 'youtube:player-client=web' --add-header "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36" -f b -g {url}
+--js-runtimes node --remote-components ejs:npm --extractor-args 'youtube:player-client=android' -f b -g {url}
 ```
 
 ## Cookies: How to Obtain and Configure

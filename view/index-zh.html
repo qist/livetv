@@ -22,7 +22,8 @@
           </h3>
         </div>
         <div class="panel-body">
-          <form role="form" action="/api/newchannel" method="POST">
+          <form role="form" action="/api/newchannel" method="POST" id="channel-form">
+            <input type="hidden" id="inputChannelID" name="id" value="">
             <div class="form-group">
               <label for="inputChannelName">频道名称</label>
               <input type="text" class="form-control" id="inputChannelName" name="name">
@@ -46,10 +47,11 @@
             </div>
             <div class="checkbox">
               <label>
-                <input type="checkbox" name="proxy">代理直播数据流
+                <input type="checkbox" id="inputChannelProxy" name="proxy">代理直播数据流
               </label>
             </div>
-            <button type="submit" class="btn btn-default">添加频道</button>
+            <button type="submit" class="btn btn-default" id="channel-submit-btn">添加频道</button>
+            <button type="button" class="btn btn-default" id="channel-cancel-btn" style="display:none">取消</button>
           </form>
         </div>
         <table class="table table-striped table-condensed">
@@ -72,7 +74,12 @@
               <td>{{.URL}}</td>
               <td>{{.M3U8}}</td>
               <td>{{ if .Proxy }}<span class="glyphicon glyphicon-ok" aria-hidden="true"></span>{{ end }}</td>
-              <td>{{ if ne .ID 0 }}<a href="/api/delchannel?id={{.ID}}"><span class="glyphicon glyphicon-trash" aria-hidden="true"></span></a>{{ end }}</td>
+              <td>
+                {{ if ne .ID 0 }}
+                  <a href="#" class="edit-channel" data-id="{{.ID}}" data-name="{{.Name}}" data-customid="{{.CustomID}}" data-group="{{ if .GroupName }}{{.GroupName}}{{ else }}youtube{{ end }}" data-url="{{.URL}}" data-proxy="{{.Proxy}}"><span class="glyphicon glyphicon-edit" aria-hidden="true"></span></a>
+                  <a href="/api/delchannel?id={{.ID}}"><span class="glyphicon glyphicon-trash" aria-hidden="true"></span></a>
+                {{ end }}
+              </td>
           </tr>
           {{end}}
         </table>
@@ -195,6 +202,35 @@
               }
           }
         });
+      });
+      function resetChannelForm() {
+        $("#channel-form").attr("action", "/api/newchannel");
+        $("#inputChannelID").val("");
+        $("#inputChannelName").val("");
+        $("#inputChannelCustomID").val("");
+        $("#inputChannelGroupName").val("");
+        $("#inputChannelLiveURL").val("");
+        $("#inputChannelProxy").prop("checked", false);
+        $("#channel-submit-btn").text("添加频道");
+        $("#channel-cancel-btn").hide();
+      }
+      $(document).on("click", ".edit-channel", function(e){
+        e.preventDefault();
+        var $el = $(this);
+        $("#channel-form").attr("action", "/api/updchannel");
+        $("#inputChannelID").val($el.attr("data-id") || "");
+        $("#inputChannelName").val($el.attr("data-name") || "");
+        $("#inputChannelCustomID").val($el.attr("data-customid") || "");
+        $("#inputChannelGroupName").val($el.attr("data-group") || "");
+        $("#inputChannelLiveURL").val($el.attr("data-url") || "");
+        $("#inputChannelProxy").prop("checked", ($el.attr("data-proxy") || "") === "true");
+        $("#channel-submit-btn").text("保存修改");
+        $("#channel-cancel-btn").show();
+        $("#inputChannelName").focus();
+        window.scrollTo(0, 0);
+      });
+      $("#channel-cancel-btn").click(function(){
+        resetChannelForm();
       });
     </script>
   </body>

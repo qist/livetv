@@ -56,6 +56,7 @@ func Register(r *gin.Engine) {
 
 	r.GET("/", handler.IndexHandler)
 	r.POST("/api/newchannel", handler.NewChannelHandler)
+	r.POST("/api/updchannel", handler.UpdateChannelHandler)
 	r.GET("/api/delchannel", handler.DeleteChannelHandler)
 	r.POST("/api/updconfig", handler.UpdateConfigHandler)
 	r.GET("/log", handler.LogHandler)

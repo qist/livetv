@@ -249,6 +249,60 @@ func DeleteChannelHandler(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/")
 }
 
+func UpdateChannelHandler(c *gin.Context) {
+	if sessions.Default(c).Get("logined") != true {
+		c.Redirect(http.StatusFound, "/login")
+	}
+	chID := util.String2Uint(c.PostForm("id"))
+	if chID == 0 {
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+			"ErrMsg": "empty id",
+		})
+		return
+	}
+	existing, err := service.GetChannel(chID)
+	if err != nil {
+		log.Println(err.Error())
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+			"ErrMsg": err.Error(),
+		})
+		return
+	}
+	chName := c.PostForm("name")
+	chURL := c.PostForm("url")
+	chCustomID := strings.TrimSpace(c.PostForm("custom_id"))
+	chGroupName := strings.TrimSpace(c.PostForm("group_name"))
+	if chName == "" || chURL == "" {
+		c.Redirect(http.StatusFound, "/")
+		return
+	}
+	if chCustomID == "" {
+		if strings.TrimSpace(existing.CustomID) != "" {
+			chCustomID = existing.CustomID
+		} else {
+			chCustomID = strconv.Itoa(int(chID))
+		}
+	}
+	chProxy := c.PostForm("proxy") != ""
+	mch := model.Channel{
+		ID:        existing.ID,
+		CustomID:  chCustomID,
+		Name:      chName,
+		URL:       chURL,
+		Proxy:     chProxy,
+		GroupName: chGroupName,
+	}
+	err = service.SaveChannel(mch)
+	if err != nil {
+		log.Println(err.Error())
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+			"ErrMsg": err.Error(),
+		})
+		return
+	}
+	c.Redirect(http.StatusFound, "/")
+}
+
 func UpdateConfigHandler(c *gin.Context) {
 	if sessions.Default(c).Get("logined") != true {
 		c.Redirect(http.StatusFound, "/login")

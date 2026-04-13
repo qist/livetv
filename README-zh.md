@@ -132,7 +132,7 @@ yt-dlp的文档可以在这里找到=> [https://github.com/yt-dlp/yt-dlp](https:
 
 ### 9. 版本号
 - 启动时显示版本信息
-- 当前版本: 1.0.0
+- 当前版本: 2.0.0
 
 ### 10. yt-dlp 参数动态生效
 - 修改 `ytdl_cmd` / `ytdl_args` / `ytdl_cookies` / `ytdl_timeout` 后无需重启

@@ -128,7 +128,7 @@ Some channels require login. You can provide cookies so yt-dlp can access them.
 
 ### 9. Version Number
 - Displays version information on startup
-- Current version: 1.0.0
+- Current version: 2.0.0
 
 ### 10. Dynamic yt-dlp Parameters
 - Changes to `ytdl_cmd` / `ytdl_args` / `ytdl_cookies` / `ytdl_timeout` take effect without restart

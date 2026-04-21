@@ -21,6 +21,9 @@ var defaultConfigValue = map[string]string{
 	"channel_param":       "c",
 	"ts_timeout":          "30",
 	"youtube_m3u_groups":  "YouTube",
+	"token_enabled":       "0",
+	"token_param":         "token",
+	"token_value":         "livetv",
 }
 
 var (

@@ -50,7 +50,7 @@ func M3UGenerate() (string, error) {
 			m3u.WriteString(",")
 			m3u.WriteString(displayName)
 			m3u.WriteString("\n")
-			m3u.WriteString(buildLiveM3U8URL(baseUrl, channelParam, channelID))
+			m3u.WriteString(BuildLiveM3U8URL(baseUrl, channelParam, channelID))
 			m3u.WriteString("\n")
 		}
 	}

@@ -145,6 +145,19 @@
                 <label for="inputTsTimeout">TS 超时(秒)</label>
                 <input type="number" class="form-control" id="inputTsTimeout" name="ts_timeout" value="{{.Configs.TSTimeout}}" placeholder="例如: 30">
               </div>
+              <div class="checkbox">
+                <label>
+                  <input type="checkbox" id="inputTokenEnabled" name="token_enabled" value="1" {{ if .Configs.TokenEnabled }}checked{{ end }}>开启 TOKEN 验证（仅本地 Query 校验）
+                </label>
+              </div>
+              <div class="form-group">
+                <label for="inputTokenParam">TOKEN 参数名</label>
+                <input type="text" class="form-control" id="inputTokenParam" name="token_param" value="{{.Configs.TokenParam}}" placeholder="例如: token">
+              </div>
+              <div class="form-group">
+                <label for="inputTokenValue">TOKEN 参数值</label>
+                <input type="text" class="form-control" id="inputTokenValue" name="token_value" value="{{.Configs.TokenValue}}" placeholder="例如: livetv">
+              </div>
               <button type="submit" class="btn btn-default">保存设置</button>
             </form>
           </div>

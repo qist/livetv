@@ -50,7 +50,7 @@ func TxtGenerate() (string, error) {
 		}
 		name := sanitizeTxtField(v.Name)
 		groupTitles := computeGroupTitles(v.GroupName, youtubeGroupTitles)
-		url := buildLiveM3U8URL(baseUrl, channelParam, channelID)
+		url := BuildLiveM3U8URL(baseUrl, channelParam, channelID)
 		for _, groupTitle := range groupTitles {
 			groupTitle = sanitizeTxtField(groupTitle)
 			if groupTitle == "" {

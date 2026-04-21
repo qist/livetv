@@ -145,6 +145,19 @@
                 <label for="inputTsTimeout">TS Timeout (seconds)</label>
                 <input type="number" class="form-control" id="inputTsTimeout" name="ts_timeout" value="{{.Configs.TSTimeout}}" placeholder="e.g., 30">
               </div>
+              <div class="checkbox">
+                <label>
+                  <input type="checkbox" id="inputTokenEnabled" name="token_enabled" value="1" {{ if .Configs.TokenEnabled }}checked{{ end }}>Enable token validation (query only)
+                </label>
+              </div>
+              <div class="form-group">
+                <label for="inputTokenParam">Token Parameter</label>
+                <input type="text" class="form-control" id="inputTokenParam" name="token_param" value="{{.Configs.TokenParam}}" placeholder="e.g., token">
+              </div>
+              <div class="form-group">
+                <label for="inputTokenValue">Token Value</label>
+                <input type="text" class="form-control" id="inputTokenValue" name="token_value" value="{{.Configs.TokenValue}}" placeholder="e.g., livetv">
+              </div>
               <button type="submit" class="btn btn-default">Save Config</button>
             </form>
           </div>

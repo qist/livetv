@@ -80,12 +80,12 @@ func IndexHandler(c *gin.Context) {
 	channels[0] = Channel{
 		ID:   0,
 		Name: m3uName,
-		M3U8: baseUrl + "/" + m3uFilename,
+		M3U8: service.BuildPlaylistFileURL(baseUrl, m3uFilename),
 	}
 	channels[1] = Channel{
 		ID:   0,
 		Name: txtName,
-		M3U8: baseUrl + "/" + txtFilename,
+		M3U8: service.BuildPlaylistFileURL(baseUrl, txtFilename),
 	}
 	for i, v := range channelModels {
 		channelID := strconv.Itoa(int(v.ID))
@@ -97,7 +97,7 @@ func IndexHandler(c *gin.Context) {
 			CustomID:  v.CustomID,
 			Name:      v.Name,
 			URL:       v.URL,
-			M3U8:      baseUrl + "/live.m3u8?" + channelParam + "=" + channelID,
+			M3U8:      service.BuildLiveM3U8URL(baseUrl, channelParam, channelID),
 			Proxy:     v.Proxy,
 			GroupName: v.GroupName,
 		}
@@ -192,6 +192,28 @@ func loadConfig() (Config, error) {
 		conf.YoutubeM3UGroups = "YouTube"
 	} else {
 		conf.YoutubeM3UGroups = youtubeM3UGroups
+	}
+	if tokenEnabled, err := service.GetConfig("token_enabled"); err == nil {
+		v := strings.TrimSpace(strings.ToLower(tokenEnabled))
+		conf.TokenEnabled = v == "1" || v == "true" || v == "yes" || v == "on"
+	}
+	if tokenParam, err := service.GetConfig("token_param"); err != nil {
+		conf.TokenParam = "token"
+	} else {
+		conf.TokenParam = tokenParam
+	}
+	conf.TokenParam = strings.TrimSpace(conf.TokenParam)
+	if conf.TokenParam == "" {
+		conf.TokenParam = "token"
+	}
+	if tokenValue, err := service.GetConfig("token_value"); err != nil {
+		conf.TokenValue = "livetv"
+	} else {
+		conf.TokenValue = tokenValue
+	}
+	conf.TokenValue = strings.TrimSpace(conf.TokenValue)
+	if conf.TokenValue == "" {
+		conf.TokenValue = "livetv"
 	}
 	return conf, nil
 }
@@ -318,6 +340,9 @@ func UpdateConfigHandler(c *gin.Context) {
 	channelParam := c.PostForm("channel_param")
 	tsTimeout := c.PostForm("ts_timeout")
 	youtubeM3UGroups, hasYoutubeM3UGroups := c.GetPostForm("youtube_m3u_groups")
+	tokenEnabled := c.PostForm("token_enabled") != ""
+	tokenParam, hasTokenParam := c.GetPostForm("token_param")
+	tokenValue, hasTokenValue := c.GetPostForm("token_value")
 	if len(ytdlCmd) > 0 {
 		err := service.SetConfig("ytdl_cmd", ytdlCmd)
 		if err != nil {
@@ -468,6 +493,49 @@ func UpdateConfigHandler(c *gin.Context) {
 			youtubeM3UGroups = "YouTube"
 		}
 		if err := service.SetConfig("youtube_m3u_groups", youtubeM3UGroups); err != nil {
+			log.Println(err.Error())
+			c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+				"ErrMsg": err.Error(),
+			})
+			return
+		}
+	}
+	if tokenEnabled {
+		if err := service.SetConfig("token_enabled", "1"); err != nil {
+			log.Println(err.Error())
+			c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+				"ErrMsg": err.Error(),
+			})
+			return
+		}
+	} else {
+		if err := service.SetConfig("token_enabled", "0"); err != nil {
+			log.Println(err.Error())
+			c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+				"ErrMsg": err.Error(),
+			})
+			return
+		}
+	}
+	if hasTokenParam {
+		tokenParam = strings.TrimSpace(tokenParam)
+		if tokenParam == "" {
+			tokenParam = "token"
+		}
+		if err := service.SetConfig("token_param", tokenParam); err != nil {
+			log.Println(err.Error())
+			c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+				"ErrMsg": err.Error(),
+			})
+			return
+		}
+	}
+	if hasTokenValue {
+		tokenValue = strings.TrimSpace(tokenValue)
+		if tokenValue == "" {
+			tokenValue = "livetv"
+		}
+		if err := service.SetConfig("token_value", tokenValue); err != nil {
 			log.Println(err.Error())
 			c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 				"ErrMsg": err.Error(),

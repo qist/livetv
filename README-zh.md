@@ -144,6 +144,21 @@ yt-dlp的文档可以在这里找到=> [https://github.com/yt-dlp/yt-dlp](https:
 - 点击“保存修改”提交更新；点击“取消”退出编辑模式并恢复为“添加频道”
 - 编辑时若自定义ID留空，会保留原有自定义ID（若原本为空则保持为该频道的数字ID）
 
+### 12. TOKEN 功能验证（仅本地 Query 校验）
+- 用途：给播放列表/拉流接口加一个简单的 Query 校验，避免链接被他人直接拿去用
+- 配置项（在配置管理里）：
+  - `token_enabled`：默认 `0` 关闭；设为 `1` 开启
+  - `token_param`：默认参数名 `token`（可自定义）
+  - `token_value`：默认值 `livetv`（可自定义）
+- 保护范围：播放列表（`/{基础名}.m3u`、`/{基础名}.txt`）与拉流接口（`/live.m3u8`、`/live.ts`、`/cache.txt`）
+- 说明：
+  - 只在本服务端校验，不会把 token 转发/透传到上游
+  - 开启后，页面生成的 M3U/TXT/频道链接会自动带上 token；M3U8 内部代理 TS 的链接也会自动带上 token
+  - 这不是完整鉴权方案；建议配合 HTTPS 使用，并妥善保管 token
+
+示例：
+- `http://你的域名:9000/lives.m3u?token=livetv`
+
 nginx 代理设置
 
 ```nginx

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"net/url"
 	"path/filepath"
 	"strings"
 )
@@ -34,8 +35,73 @@ func sanitizeM3UText(s string) string {
 	return strings.TrimSpace(s)
 }
 
-func buildLiveM3U8URL(baseUrl string, channelParam string, channelID string) string {
-	return baseUrl + "/live.m3u8?" + channelParam + "=" + channelID
+func tokenConfig() (enabled bool, param string, value string) {
+	enabledRaw, err := GetConfig("token_enabled")
+	if err == nil {
+		v := strings.TrimSpace(strings.ToLower(enabledRaw))
+		enabled = v == "1" || v == "true" || v == "yes" || v == "on"
+	}
+	param, err = GetConfig("token_param")
+	if err != nil {
+		param = "token"
+	}
+	param = strings.TrimSpace(param)
+	if param == "" {
+		param = "token"
+	}
+	value, err = GetConfig("token_value")
+	if err != nil {
+		value = "livetv"
+	}
+	value = strings.TrimSpace(value)
+	if value == "" {
+		value = "livetv"
+	}
+	return enabled, param, value
+}
+
+func BuildLiveM3U8URL(baseUrl string, channelParam string, channelID string) string {
+	baseUrl = strings.TrimSuffix(baseUrl, "/")
+	path := baseUrl + "/live.m3u8"
+	values := url.Values{}
+	channelParam = strings.TrimSpace(channelParam)
+	if channelParam == "" {
+		channelParam = "c"
+	}
+	values.Set(channelParam, channelID)
+	if enabled, param, value := tokenConfig(); enabled {
+		values.Set(param, value)
+	}
+	return path + "?" + values.Encode()
+}
+
+func BuildTsProxyPrefix(baseUrl string) string {
+	baseUrl = strings.TrimSuffix(baseUrl, "/")
+	path := baseUrl + "/live.ts"
+	values := url.Values{}
+	if enabled, param, value := tokenConfig(); enabled {
+		values.Set(param, value)
+	}
+	encoded := values.Encode()
+	if encoded == "" {
+		return path + "?k="
+	}
+	return path + "?" + encoded + "&k="
+}
+
+func BuildPlaylistFileURL(baseUrl string, filename string) string {
+	baseUrl = strings.TrimSuffix(baseUrl, "/")
+	filename = strings.TrimPrefix(filename, "/")
+	path := baseUrl + "/" + filename
+	values := url.Values{}
+	if enabled, param, value := tokenConfig(); enabled {
+		values.Set(param, value)
+	}
+	encoded := values.Encode()
+	if encoded == "" {
+		return path
+	}
+	return path + "?" + encoded
 }
 
 func computeGroupTitles(groupName string, youtubeGroupTitles []string) []string {

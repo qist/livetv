@@ -134,6 +134,21 @@ Some channels require login. You can provide cookies so yt-dlp can access them.
 - Changes to `ytdl_cmd` / `ytdl_args` / `ytdl_cookies` / `ytdl_timeout` take effect without restart
 - Cache is cleared automatically so new parameters apply immediately
 
+### 11. Optional Token Validation (Query-only, local check)
+- Purpose: prevent others from using your playlist/stream links by requiring a shared token in the query string
+- Config keys (Config Manager):
+  - `token_enabled`: `0` (default, off) / `1` (on)
+  - `token_param`: default `token`
+  - `token_value`: default `livetv`
+- Protected endpoints: playlists (`/{base}.m3u`, `/{base}.txt`) and stream endpoints (`/live.m3u8`, `/live.ts`, `/cache.txt`)
+- Notes:
+  - Token is validated only by this server and is NOT forwarded to upstream
+  - When enabled, generated links (including proxied TS links inside M3U8) automatically include the token
+  - This is not a replacement for proper authentication; use HTTPS and keep the token private
+
+Example:
+- `http://your_host:9000/lives.m3u?token=livetv`
+
 Document Translate by [DeepL](https://www.deepl.com/zh/translator)
 
 nginx proxy set

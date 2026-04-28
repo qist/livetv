@@ -161,6 +161,11 @@ func TsProxyHandler(c *gin.Context) {
 		return
 	}
 	copyHeaders(req.Header, c.Request.Header)
+	if ua := c.Request.Header.Get("User-Agent"); ua != "" {
+		req.Header.Set("User-Agent", ua)
+	} else {
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	}
 	resp, err := global.StreamHTTPClient.Do(req)
 	if err != nil {
 		log.Println(err)

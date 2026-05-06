@@ -145,6 +145,10 @@
                 <label for="inputTsTimeout">TS 超时(秒)</label>
                 <input type="number" class="form-control" id="inputTsTimeout" name="ts_timeout" value="{{.Configs.TSTimeout}}" placeholder="例如: 30">
               </div>
+              <div class="form-group">
+                <label for="inputTSCacheMaxSize">TS 缓存上限 (MB)</label>
+                <input type="number" class="form-control" id="inputTSCacheMaxSize" name="ts_cache_max_size" value="{{.Configs.TSCacheMaxSize}}" placeholder="例如: 200">
+              </div>
               <div class="checkbox">
                 <label>
                   <input type="checkbox" id="inputTokenEnabled" name="token_enabled" value="1" {{ if .Configs.TokenEnabled }}checked{{ end }}>开启 TOKEN 验证（仅本地 Query 校验）

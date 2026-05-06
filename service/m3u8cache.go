@@ -27,7 +27,7 @@ func LoadChannelCache() {
 		return
 	}
 	for _, v := range channels {
-		channelURL := normalizeYoutubeURL(v.URL)
+		channelURL := NormalizeYoutubeURL(v.URL)
 		log.Println("caching", channelURL)
 		_, err := GetYoutubeLiveM3U8(channelURL)
 		if err != nil {
@@ -45,7 +45,7 @@ func UpdateURLCache() {
 		return
 	}
 	for _, v := range channels {
-		channelURL := normalizeYoutubeURL(v.URL)
+		channelURL := NormalizeYoutubeURL(v.URL)
 		if failTime, failed := failedChannels[channelURL]; failed {
 			if time.Since(failTime) < failureCooldown {
 				log.Println("skipping failed channel (cooldown):", channelURL)

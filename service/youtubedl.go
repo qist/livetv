@@ -37,7 +37,7 @@ var (
 const ytdlFailureBackoff = time.Minute
 
 func GetYoutubeLiveM3U8(youtubeURL string) (string, error) {
-	normalizedURL := normalizeYoutubeURL(youtubeURL)
+	normalizedURL := NormalizeYoutubeURL(youtubeURL)
 	if normalizedURL == "" {
 		return "", fmt.Errorf("empty youtube url")
 	}
@@ -79,7 +79,7 @@ func GetYoutubeLiveM3U8(youtubeURL string) (string, error) {
 }
 
 func RealGetYoutubeLiveM3U8(youtubeURL string) (string, error) {
-	youtubeURL = normalizeYoutubeURL(youtubeURL)
+	youtubeURL = NormalizeYoutubeURL(youtubeURL)
 	YtdlCmd, err := GetConfig("ytdl_cmd")
 	if err != nil {
 		log.Println(err)
@@ -274,7 +274,7 @@ func buildYtdlError(waitErr error, stderrBytes []byte) error {
 	return fmt.Errorf("%w: %s", waitErr, stderrText)
 }
 
-func normalizeYoutubeURL(s string) string {
+func NormalizeYoutubeURL(s string) string {
 	s = strings.TrimSpace(s)
 	s = strings.TrimFunc(s, func(r rune) bool {
 		switch r {

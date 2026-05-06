@@ -145,6 +145,10 @@
                 <label for="inputTsTimeout">TS Timeout (seconds)</label>
                 <input type="number" class="form-control" id="inputTsTimeout" name="ts_timeout" value="{{.Configs.TSTimeout}}" placeholder="e.g., 30">
               </div>
+              <div class="form-group">
+                <label for="inputTSCacheMaxSize">TS Cache Max Size (MB)</label>
+                <input type="number" class="form-control" id="inputTSCacheMaxSize" name="ts_cache_max_size" value="{{.Configs.TSCacheMaxSize}}" placeholder="e.g., 200">
+              </div>
               <div class="checkbox">
                 <label>
                   <input type="checkbox" id="inputTokenEnabled" name="token_enabled" value="1" {{ if .Configs.TokenEnabled }}checked{{ end }}>Enable token validation (query only)

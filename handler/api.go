@@ -188,6 +188,11 @@ func loadConfig() (Config, error) {
 	} else {
 		conf.TSTimeout = tsTimeout
 	}
+	if tsCacheMaxSize, err := service.GetConfig("ts_cache_max_size"); err != nil {
+		conf.TSCacheMaxSize = "200"
+	} else {
+		conf.TSCacheMaxSize = tsCacheMaxSize
+	}
 	if youtubeM3UGroups, err := service.GetConfig("youtube_m3u_groups"); err != nil {
 		conf.YoutubeM3UGroups = "YouTube"
 	} else {
@@ -339,6 +344,7 @@ func UpdateConfigHandler(c *gin.Context) {
 	m3uFilename := c.PostForm("m3u_filename")
 	channelParam := c.PostForm("channel_param")
 	tsTimeout := c.PostForm("ts_timeout")
+	tsCacheMaxSize := c.PostForm("ts_cache_max_size")
 	youtubeM3UGroups, hasYoutubeM3UGroups := c.GetPostForm("youtube_m3u_groups")
 	tokenEnabled := c.PostForm("token_enabled") != ""
 	tokenParam, hasTokenParam := c.GetPostForm("token_param")
@@ -479,6 +485,16 @@ func UpdateConfigHandler(c *gin.Context) {
 	}
 	if len(tsTimeout) > 0 {
 		err := service.SetConfig("ts_timeout", tsTimeout)
+		if err != nil {
+			log.Println(err.Error())
+			c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+				"ErrMsg": err.Error(),
+			})
+			return
+		}
+	}
+	if len(tsCacheMaxSize) > 0 {
+		err := service.SetConfig("ts_cache_max_size", tsCacheMaxSize)
 		if err != nil {
 			log.Println(err.Error())
 			c.HTML(http.StatusInternalServerError, "error.html", gin.H{

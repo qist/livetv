@@ -54,80 +54,30 @@ func TxtHandler(c *gin.Context) {
 }
 
 func LiveHandler(c *gin.Context) {
-	var m3u8Body string
 	channelParam, err := service.GetConfig("channel_param")
 	if err != nil {
 		channelParam = "c"
 	}
-	channelCacheKey := c.Query(channelParam)
-	iBody, found := global.M3U8Cache.Get(channelCacheKey)
-	if found {
-		m3u8Body = iBody.(string)
-	} else {
-		channelIdentifier := c.Query(channelParam)
-		if channelIdentifier == "" {
+	channelIdentifier := c.Query(channelParam)
+	if channelIdentifier == "" {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	channelInfo, err := service.GetChannel(channelIdentifier)
+	if err != nil {
+		if gorm.IsRecordNotFoundError(err) {
 			c.AbortWithStatus(http.StatusNotFound)
-			return
-		}
-		channelInfo, err := service.GetChannel(channelIdentifier)
-		if err != nil {
-			if gorm.IsRecordNotFoundError(err) {
-				c.AbortWithStatus(http.StatusNotFound)
-			} else {
-				log.Println(err)
-				c.AbortWithStatus(http.StatusInternalServerError)
-			}
-			return
-		}
-		baseUrl, err := service.GetConfig("base_url")
-		if err != nil {
-			log.Println(err)
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-		liveM3U8, err := service.GetYoutubeLiveM3U8(channelInfo.URL)
-		if err != nil {
-			log.Println(err)
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-		resp, err := global.PlaylistHTTPClient.Get(liveM3U8)
-		if err != nil {
-			log.Println(err)
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode >= http.StatusBadRequest {
-			log.Println("upstream status:", resp.Status)
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-		contentType := strings.ToLower(resp.Header.Get("Content-Type"))
-		if strings.HasPrefix(contentType, "video/") && !strings.Contains(contentType, "mpegurl") {
-			// Likely VOD media (mp4/flv), not a live HLS playlist.
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-		const maxM3U8Size = 2 * 1024 * 1024 // 2MB hard limit for playlists
-		bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, maxM3U8Size))
-		if err != nil {
-			log.Println(err)
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-		bodyString := string(bodyBytes)
-		if !strings.HasPrefix(strings.TrimSpace(bodyString), "#EXTM3U") {
-			// Not a playlist; avoid caching large VOD responses.
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-		if channelInfo.Proxy {
-			m3u8Body = service.M3U8Process(bodyString, service.BuildTsProxyPrefix(baseUrl))
 		} else {
-			m3u8Body = bodyString
+			log.Println(err)
+			c.AbortWithStatus(http.StatusInternalServerError)
 		}
-		global.M3U8Cache.Set(channelCacheKey, m3u8Body, 3*time.Second)
+		return
+	}
+	m3u8Body, err := service.FetchChannelPlaylist(channelInfo.URL, channelInfo.Proxy)
+	if err != nil {
+		log.Println(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
 	}
 	c.Header("Content-Type", "application/vnd.apple.mpegurl")
 	c.Status(http.StatusOK)
@@ -146,44 +96,116 @@ func TsProxyHandler(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
+
+	// 读取并更新缓存大小配置（MB）
+	if cfgSize, configErr := service.GetConfig("ts_cache_max_size"); configErr == nil {
+		if mb, parseErr := strconv.Atoi(cfgSize); parseErr == nil && mb > 0 {
+			service.GlobalTSCache.UpdateMaxBytes(int64(mb) * 1024 * 1024)
+		}
+	}
+
+	tsCache := service.GlobalTSCache
+	item, created := tsCache.GetOrCreate(zipedRemoteURL)
+
+	if !created {
+		if item.IsSealed() {
+			log.Println("[TS] cache hit:", remoteURL)
+		} else {
+			log.Println("[TS] join stream:", remoteURL)
+		}
+		done := c.Request.Context().Done()
+		writeStreamHeaders(c, nil, 0)
+		if err := item.ReadAll(c.Writer, done); err != nil && !errors.Is(err, context.Canceled) {
+			log.Println("[TS] read error:", err)
+		}
+		return
+	}
+
+	// 新建缓存项，从源拉取并流式写入
+	log.Println("[TS] fetch start:", remoteURL)
+	timeout := getTSTimeout()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	resp, err := doFetchTSRemote(ctx, c.Request.Method, remoteURL, c.Request.Header)
+	if err != nil {
+		log.Println("[TS] fetch error:", err)
+		tsCache.Remove(zipedRemoteURL)
+		c.AbortWithStatus(http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+
+	// 写响应头（使用上游响应头）
+	writeStreamHeaders(c, resp.Header, resp.StatusCode)
+
+	// 流式读取上游，同时写入缓存和客户端
+	total := 0
+	buf := global.IOBufferPool.Get().([]byte)
+	defer global.IOBufferPool.Put(buf)
+	for {
+		n, readErr := resp.Body.Read(buf)
+		if n > 0 {
+			chunk := buf[:n]
+			tsCache.WriteChunk(item, chunk)
+			if _, writeErr := c.Writer.Write(chunk); writeErr != nil {
+				if !errors.Is(writeErr, context.Canceled) {
+					log.Println("[TS] write error:", writeErr)
+				}
+				item.Seal(nil)
+				return
+			}
+			total += n
+		}
+		if readErr != nil {
+			if readErr == io.EOF {
+				item.Seal(nil)
+			} else {
+				item.Seal(readErr)
+			}
+			break
+		}
+	}
+	log.Printf("[TS] streamed %dKB: %s\n", total/1024, remoteURL)
+}
+
+func writeStreamHeaders(c *gin.Context, upstreamHeader http.Header, statusCode int) {
+	if upstreamHeader != nil {
+		copyHeaders(c.Writer.Header(), upstreamHeader)
+	}
+	c.Header("Cache-Control", "no-store")
+	c.Header("Pragma", "no-cache")
+	c.Header("Expires", "0")
+	c.Header("X-Accel-Buffering", "no")
+	if statusCode > 0 {
+		c.Status(statusCode)
+	} else {
+		c.Status(http.StatusOK)
+	}
+}
+
+func getTSTimeout() time.Duration {
 	timeout := global.HttpClientTimeout
 	if cfgTimeout, configErr := service.GetConfig("ts_timeout"); configErr == nil {
 		if sec, parseErr := strconv.Atoi(cfgTimeout); parseErr == nil && sec > 0 {
 			timeout = time.Duration(sec) * time.Second
 		}
 	}
-	ctx, cancel := context.WithTimeout(c.Request.Context(), timeout)
-	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, c.Request.Method, remoteURL, nil)
+	return timeout
+}
+
+func doFetchTSRemote(ctx context.Context, method, remoteURL string, reqHeaders http.Header) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, method, remoteURL, nil)
 	if err != nil {
-		log.Println(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return nil, err
 	}
-	copyHeaders(req.Header, c.Request.Header)
-	if ua := c.Request.Header.Get("User-Agent"); ua != "" {
+	copyHeaders(req.Header, reqHeaders)
+	if ua := reqHeaders.Get("User-Agent"); ua != "" {
 		req.Header.Set("User-Agent", ua)
 	} else {
 		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 	}
-	resp, err := global.StreamHTTPClient.Do(req)
-	if err != nil {
-		log.Println(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-	defer resp.Body.Close()
-	copyHeaders(c.Writer.Header(), resp.Header)
-	c.Header("Cache-Control", "no-store")
-	c.Header("Pragma", "no-cache")
-	c.Header("Expires", "0")
-	c.Header("X-Accel-Buffering", "no")
-	c.Status(resp.StatusCode)
-	buffer := global.IOBufferPool.Get().([]byte)
-	defer global.IOBufferPool.Put(buffer)
-	if _, err := io.CopyBuffer(c.Writer, resp.Body, buffer); err != nil && !errors.Is(err, context.Canceled) {
-		log.Println(err)
-	}
+	return global.StreamHTTPClient.Do(req)
 }
 
 func CacheHandler(c *gin.Context) {

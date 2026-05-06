@@ -134,7 +134,15 @@ Some channels require login. You can provide cookies so yt-dlp can access them.
 - Changes to `ytdl_cmd` / `ytdl_args` / `ytdl_cookies` / `ytdl_timeout` take effect without restart
 - Cache is cleared automatically so new parameters apply immediately
 
-### 11. Optional Token Validation (Query-only, local check)
+### 11. Proxy TS Streaming Cache
+- When proxy mode is enabled, TS segments use a streaming cache: data is fetched and returned to clients simultaneously, ensuring smooth playback
+- Multiple clients requesting the same TS segment share a single upstream fetch (only one origin request)
+- LRU eviction with configurable size limit (default 200MB); least-recently-used items are evicted when the limit is exceeded
+- Cache TTL is 30 seconds with background cleanup of expired items
+- Config key `ts_cache_max_size`: TS cache size limit in MB, configurable from the settings page
+- M3U8 cache stores raw content; proxy and non-proxy modes share the same upstream cache, with proxy rewriting applied at read time
+
+### 12. Optional Token Validation (Query-only, local check)
 - Purpose: prevent others from using your playlist/stream links by requiring a shared token in the query string
 - Config keys (Config Manager):
   - `token_enabled`: `0` (default, off) / `1` (on)

@@ -8,10 +8,10 @@ import (
 
 func TestNormalizeYoutubeURL(t *testing.T) {
 	input := " \t`\"https://www.youtube.com/watch?v=abc123\"`\n"
-	got := normalizeYoutubeURL(input)
+	got := NormalizeYoutubeURL(input)
 	want := "https://www.youtube.com/watch?v=abc123"
 	if got != want {
-		t.Fatalf("normalizeYoutubeURL() = %q, want %q", got, want)
+		t.Fatalf("NormalizeYoutubeURL() = %q, want %q", got, want)
 	}
 }
 

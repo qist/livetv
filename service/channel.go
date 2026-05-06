@@ -24,7 +24,7 @@ func GetAllChannel() (channels []model.Channel, err error) {
 }
 
 func SaveChannel(channel model.Channel) error {
-	channel.URL = normalizeYoutubeURL(channel.URL)
+	channel.URL = NormalizeYoutubeURL(channel.URL)
 	channel.GroupName = strings.TrimSpace(channel.GroupName)
 	if channel.GroupName == "" {
 		channel.GroupName = DefaultGroupName

@@ -21,6 +21,7 @@ type Config struct {
 	M3UFilename      string
 	ChannelParam     string
 	TSTimeout        string
+	TSCacheMaxSize   string
 	YoutubeM3UGroups string
 	TokenEnabled     bool
 	TokenParam       string

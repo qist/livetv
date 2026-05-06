@@ -24,6 +24,7 @@ var defaultConfigValue = map[string]string{
 	"token_enabled":       "0",
 	"token_param":         "token",
 	"token_value":         "livetv",
+	"ts_cache_max_size":   "200",
 }
 
 var (

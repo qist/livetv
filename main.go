@@ -75,6 +75,7 @@ func main() {
 			log.Println("Failed to set password from LIVETV_PASSWORD:", err)
 		}
 	}
+	service.RefreshCachedConfig()
 	log.Println("LiveTV starting...")
 	go service.LoadChannelCache()
 	c := cron.New()

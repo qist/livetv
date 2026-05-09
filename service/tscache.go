@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -29,7 +30,7 @@ type TSCache struct {
 	mu sync.RWMutex
 
 	maxBytes int64
-	curBytes int64
+	curBytes atomic.Int64
 
 	ttl time.Duration
 
@@ -101,21 +102,25 @@ func (c *TSCache) WriteChunk(item *tsCacheItem, data []byte) {
 	default:
 	}
 
-	// 更新字节计数并淘汰旧项
-	c.mu.Lock()
-	c.curBytes += int64(len(data))
-	for c.curBytes > c.maxBytes && c.ll.Back() != nil {
-		least := c.ll.Back()
-		if least == nil {
-			break
+	// 更新字节计数，超过阈值时触发淘汰
+	newTotal := c.curBytes.Add(int64(len(data)))
+	if newTotal > c.maxBytes+(c.maxBytes/10) {
+		c.mu.Lock()
+		for c.curBytes.Load() > c.maxBytes && c.ll.Back() != nil {
+			least := c.ll.Back()
+			if least == nil {
+				break
+			}
+			c.removeItem(least.Value.(*tsCacheItem))
 		}
-		c.removeItem(least.Value.(*tsCacheItem))
+		c.mu.Unlock()
 	}
-	c.mu.Unlock()
 }
 
 func (item *tsCacheItem) ReadAll(dst io.Writer, done <-chan struct{}) error {
 	seq := 1
+	timer := time.NewTimer(5 * time.Second)
+	defer timer.Stop()
 	for {
 		item.mutex.RLock()
 		if seq <= len(item.chunks) {
@@ -145,11 +150,18 @@ func (item *tsCacheItem) ReadAll(dst io.Writer, done <-chan struct{}) error {
 			return retErr
 		}
 
+		if !timer.Stop() {
+			select {
+			case <-timer.C:
+			default:
+			}
+		}
+		timer.Reset(5 * time.Second)
 		select {
 		case <-item.waitCh:
 		case <-done:
 			return nil
-		case <-time.After(5 * time.Second):
+		case <-timer.C:
 		}
 	}
 }
@@ -179,7 +191,7 @@ func safeCloseChan(ch chan struct{}) {
 func (c *TSCache) removeItem(it *tsCacheItem) {
 	delete(c.items, it.key)
 	c.ll.Remove(it.element)
-	c.curBytes -= it.bytes
+	c.curBytes.Add(-it.bytes)
 	it.Seal(nil)
 }
 
@@ -210,7 +222,7 @@ func (c *TSCache) UpdateMaxBytes(newMax int64) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.maxBytes = newMax
-	for c.curBytes > c.maxBytes && c.ll.Back() != nil {
+	for c.curBytes.Load() > c.maxBytes && c.ll.Back() != nil {
 		least := c.ll.Back()
 		if least == nil {
 			break
@@ -231,7 +243,7 @@ func (c *TSCache) Close() {
 		c.ll.Remove(e)
 		e = next
 	}
-	c.curBytes = 0
+	c.curBytes.Store(0)
 }
 
 func (item *tsCacheItem) IsSealed() bool {
@@ -241,9 +253,7 @@ func (item *tsCacheItem) IsSealed() bool {
 }
 
 func (c *TSCache) CurBytes() int64 {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return c.curBytes
+	return c.curBytes.Load()
 }
 
 func (c *TSCache) Remove(key string) {

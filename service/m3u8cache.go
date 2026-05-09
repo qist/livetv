@@ -9,6 +9,8 @@ import (
 	"github.com/qist/livetv/util"
 )
 
+var expireRegex = regexp.MustCompile(`/expire/(\d+)/`)
+
 // Channel failure tracking
 var (
 	channelFailures = make(map[string]int)
@@ -74,8 +76,7 @@ func UpdateURLCache() {
 	}
 	global.URLCache.Range(func(k, v any) bool {
 		value := v.(string)
-		regex := regexp.MustCompile(`/expire/(\d+)/`)
-		matched := regex.FindStringSubmatch(value)
+		matched := expireRegex.FindStringSubmatch(value)
 		if len(matched) < 2 {
 			global.URLCache.Delete(k)
 		}

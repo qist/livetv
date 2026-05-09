@@ -18,11 +18,13 @@ func Register(r *gin.Engine) {
 			c.Next()
 			return
 		}
-		enabled, param, expected := loadTokenConfig()
-		if !enabled {
+		cfg := service.GetCachedConfig()
+		if !cfg.TokenEnabled.Load() {
 			c.Next()
 			return
 		}
+		param := cfg.TokenParam.Load().(string)
+		expected := cfg.TokenValue.Load().(string)
 		if c.Query(param) != expected {
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
@@ -51,8 +53,8 @@ func Register(r *gin.Engine) {
 		}
 
 		// Check if this filename matches the configured playlist base name
-		m3uFilenameValue, err := service.GetConfig("m3u_filename")
-		if err == nil {
+		m3uFilenameValue := service.GetCachedConfig().M3UFilename.Load().(string)
+		{
 			m3uFilename := service.DeriveM3UFilename(m3uFilenameValue)
 			if filename == m3uFilename && filename != "lives.m3u" {
 				// Handle M3U request
@@ -95,38 +97,11 @@ func requiresTokenCheck(path string) bool {
 	if filename == "" {
 		return false
 	}
-	m3uFilenameValue, err := service.GetConfig("m3u_filename")
-	if err != nil {
-		return false
-	}
+	m3uFilenameValue := service.GetCachedConfig().M3UFilename.Load().(string)
 	m3uFilename := service.DeriveM3UFilename(m3uFilenameValue)
 	if filename == m3uFilename {
 		return true
 	}
 	txtFilename := service.DeriveTxtFilename(m3uFilenameValue)
 	return filename == txtFilename
-}
-
-func loadTokenConfig() (enabled bool, param string, expected string) {
-	if v, err := service.GetConfig("token_enabled"); err == nil {
-		v = strings.TrimSpace(strings.ToLower(v))
-		enabled = v == "1" || v == "true" || v == "yes" || v == "on"
-	}
-	param, err := service.GetConfig("token_param")
-	if err != nil {
-		param = "token"
-	}
-	param = strings.TrimSpace(param)
-	if param == "" {
-		param = "token"
-	}
-	expected, err = service.GetConfig("token_value")
-	if err != nil {
-		expected = "livetv"
-	}
-	expected = strings.TrimSpace(expected)
-	if expected == "" {
-		expected = "livetv"
-	}
-	return enabled, param, expected
 }

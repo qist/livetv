@@ -5,14 +5,33 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"io"
+	"sync"
 )
 
+var gzipWriterPool = sync.Pool{
+	New: func() any {
+		zw, _ := gzip.NewWriterLevel(nil, gzip.BestCompression)
+		return zw
+	},
+}
+
+var bufferPool = sync.Pool{
+	New: func() any {
+		return new(bytes.Buffer)
+	},
+}
+
 func CompressString(s string) string {
-	var buf bytes.Buffer
-	zw, _ := gzip.NewWriterLevel(&buf, gzip.BestCompression)
+	buf := bufferPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	zw := gzipWriterPool.Get().(*gzip.Writer)
+	zw.Reset(buf)
 	_, _ = zw.Write([]byte(s))
-	zw.Close()
-	zipResult := buf.Bytes()
+	_ = zw.Close()
+	zipResult := make([]byte, buf.Len())
+	copy(zipResult, buf.Bytes())
+	gzipWriterPool.Put(zw)
+	bufferPool.Put(buf)
 	return base64.URLEncoding.EncodeToString(zipResult)
 }
 

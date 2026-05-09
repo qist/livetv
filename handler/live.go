@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -98,11 +97,7 @@ func TsProxyHandler(c *gin.Context) {
 	}
 
 	// 读取并更新缓存大小配置（MB）
-	if cfgSize, configErr := service.GetConfig("ts_cache_max_size"); configErr == nil {
-		if mb, parseErr := strconv.Atoi(cfgSize); parseErr == nil && mb > 0 {
-			service.GlobalTSCache.UpdateMaxBytes(int64(mb) * 1024 * 1024)
-		}
-	}
+	service.GlobalTSCache.UpdateMaxBytes(service.GetTSCacheMaxBytes())
 
 	tsCache := service.GlobalTSCache
 	item, created := tsCache.GetOrCreate(zipedRemoteURL)
@@ -185,13 +180,7 @@ func writeStreamHeaders(c *gin.Context, upstreamHeader http.Header, statusCode i
 }
 
 func getTSTimeout() time.Duration {
-	timeout := global.HttpClientTimeout
-	if cfgTimeout, configErr := service.GetConfig("ts_timeout"); configErr == nil {
-		if sec, parseErr := strconv.Atoi(cfgTimeout); parseErr == nil && sec > 0 {
-			timeout = time.Duration(sec) * time.Second
-		}
-	}
-	return timeout
+	return service.GetTSTimeout()
 }
 
 func doFetchTSRemote(ctx context.Context, method, remoteURL string, reqHeaders http.Header) (*http.Response, error) {

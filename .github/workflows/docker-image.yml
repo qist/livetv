@@ -22,7 +22,7 @@ jobs:
         with:
           ref: main
 
-      # 2️⃣ 检查 yt-dlp 最新 release 时间
+      # 2️⃣ 检查 yt-dlp 最新 release 时间和版本
       - name: Check yt-dlp latest release
         id: check_update
         run: |
@@ -35,6 +35,11 @@ jobs:
           CURRENT_TS=$(date +%s)
           DIFF_SEC=$((CURRENT_TS - PUBLISHED_TS))
 
+          # 提取 yt-dlp 版本号作为 Docker tag
+          YTDLP_TAG=$(jq -r '.tag_name' "$TMP_FILE")
+          echo "ytdlp_tag=$YTDLP_TAG" >> $GITHUB_ENV
+          echo "yt-dlp tag: $YTDLP_TAG"
+
           if [ "$DIFF_SEC" -le $((22*3600)) ]; then
               echo "yt-dlp updated within 22 hours. Proceed build."
               echo "run_build=true" >> $GITHUB_ENV
@@ -42,7 +47,7 @@ jobs:
               echo "yt-dlp latest release older than 22 hours. Skip build."
               echo "run_build=false" >> $GITHUB_ENV
           fi
-          # echo dddddd ${DIFF_SEC}
+
       # 3️⃣ Docker metadata
       - name: Docker metadata
         id: meta
@@ -51,7 +56,7 @@ jobs:
           images: ${{ env.DOCKER_HUB_REGISTRY }}/juestnow/livetv
           flavor: latest=true
           tags: |
-            type=ref,event=branch
+            type=raw,value=${{ env.ytdlp_tag }}
             type=raw,value=latest
 
       - name: Docker metadata for GHCR
@@ -61,7 +66,7 @@ jobs:
           images: ${{ env.GHCR_REGISTRY }}/${{ github.repository_owner }}/livetv
           flavor: latest=true
           tags: |
-            type=ref,event=branch
+            type=raw,value=${{ env.ytdlp_tag }}
             type=raw,value=latest
 
       # 4️⃣ Set up QEMU / Buildx
@@ -89,7 +94,7 @@ jobs:
 
       # 7️⃣ Build and push only if update is recent
       - name: Build and push
-        if: env.run_build == 'true'
+        # if: env.run_build == 'true'
         uses: docker/build-push-action@v7
         with:
           context: .

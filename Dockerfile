@@ -5,7 +5,7 @@ FROM golang:alpine AS builder
 WORKDIR /go/src/github.com/qist/livetv/
 ARG TARGETARCH
 # 安装构建依赖
-RUN apk add --no-cache build-base git upx
+RUN apk add --no-cache build-base git
 COPY . .
 
 # Go 环境配置
@@ -13,9 +13,8 @@ ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
 RUN gcc -v
 # 编译 livetv
-RUN go build -ldflags "-w -s" -o livetv .
-# 压缩文件
-RUN upx -9 -k livetv
+RUN go build -ldflags "-w -s" -trimpath -o livetv .
+
 # ==========================
 # Runtime 阶段
 # ==========================

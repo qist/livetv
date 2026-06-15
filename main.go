@@ -129,6 +129,7 @@ func main() {
 			log.Printf("Server close error: %s\n", closeErr)
 		}
 	}
+	service.GlobalTSCache.Close()
 	log.Println("Server exiting")
 	if logFile != nil {
 		logFile.Close()

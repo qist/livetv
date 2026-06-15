@@ -54,20 +54,9 @@ func DeleteChannel(id uint) error {
 }
 
 func GetChannel(channelIdentifier interface{}) (channel model.Channel, err error) {
-	// Try custom ID first
-	err = global.DB.Preload("Group").Where("custom_id = ?", channelIdentifier).First(&channel).Error
-	if err == nil {
-		if channel.GroupID != 0 && strings.TrimSpace(channel.Group.Name) != "" {
-			channel.GroupName = channel.Group.Name
-		}
-		return
-	}
-	// Fall back to numeric ID
-	err = global.DB.Preload("Group").Where("id = ?", channelIdentifier).First(&channel).Error
-	if err == nil {
-		if channel.GroupID != 0 && strings.TrimSpace(channel.Group.Name) != "" {
-			channel.GroupName = channel.Group.Name
-		}
+	err = global.DB.Preload("Group").Where("custom_id = ? OR id = ?", channelIdentifier, channelIdentifier).First(&channel).Error
+	if err == nil && channel.GroupID != 0 && strings.TrimSpace(channel.Group.Name) != "" {
+		channel.GroupName = channel.Group.Name
 	}
 	return
 }

@@ -36,28 +36,11 @@ func sanitizeM3UText(s string) string {
 }
 
 func tokenConfig() (enabled bool, param string, value string) {
-	enabledRaw, err := GetConfig("token_enabled")
-	if err == nil {
-		v := strings.TrimSpace(strings.ToLower(enabledRaw))
-		enabled = v == "1" || v == "true" || v == "yes" || v == "on"
-	}
-	param, err = GetConfig("token_param")
-	if err != nil {
-		param = "token"
-	}
-	param = strings.TrimSpace(param)
-	if param == "" {
-		param = "token"
-	}
-	value, err = GetConfig("token_value")
-	if err != nil {
-		value = "livetv"
-	}
-	value = strings.TrimSpace(value)
-	if value == "" {
-		value = "livetv"
-	}
-	return enabled, param, value
+	cc := GetCachedConfig()
+	enabled = cc.TokenEnabled.Load()
+	param, _ = cc.TokenParam.Load().(string)
+	value, _ = cc.TokenValue.Load().(string)
+	return
 }
 
 func BuildLiveM3U8URL(baseUrl string, channelParam string, channelID string) string {

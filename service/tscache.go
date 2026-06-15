@@ -81,17 +81,19 @@ func (c *TSCache) createItem(key string) *tsCacheItem {
 }
 
 func (c *TSCache) WriteChunk(item *tsCacheItem, data []byte) {
-	if data == nil || item == nil {
+	if len(data) == 0 || item == nil {
 		return
 	}
+
+	// 在调用方归还 pool buffer 前完成拷贝，避免双重分配
+	cp := make([]byte, len(data))
+	copy(cp, data)
 
 	item.mutex.Lock()
 	if item.closed {
 		item.mutex.Unlock()
 		return
 	}
-	cp := make([]byte, len(data))
-	copy(cp, data)
 	item.chunks = append(item.chunks, cp)
 	item.bytes += int64(len(cp))
 	item.mutex.Unlock()

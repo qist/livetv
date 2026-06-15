@@ -3,6 +3,7 @@ package service
 import (
 	"log"
 	"regexp"
+	"sync"
 	"time"
 
 	"github.com/qist/livetv/global"
@@ -13,6 +14,7 @@ var expireRegex = regexp.MustCompile(`/expire/(\d+)/`)
 
 // Channel failure tracking
 var (
+	channelMu       sync.Mutex
 	channelFailures = make(map[string]int)
 	failedChannels  = make(map[string]time.Time)
 )

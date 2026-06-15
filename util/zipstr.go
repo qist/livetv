@@ -10,8 +10,14 @@ import (
 
 var gzipWriterPool = sync.Pool{
 	New: func() any {
-		zw, _ := gzip.NewWriterLevel(nil, gzip.BestCompression)
+		zw, _ := gzip.NewWriterLevel(nil, gzip.DefaultCompression)
 		return zw
+	},
+}
+
+var gzipReaderPool = sync.Pool{
+	New: func() any {
+		return new(gzip.Reader)
 	},
 }
 
@@ -40,11 +46,14 @@ func DecompressString(s string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	zipReader, err := gzip.NewReader(bytes.NewBuffer(zipData))
-	if err != nil {
+	zr := gzipReaderPool.Get().(*gzip.Reader)
+	if err := zr.Reset(bytes.NewReader(zipData)); err != nil {
+		gzipReaderPool.Put(zr)
 		return "", err
 	}
-	result, err := io.ReadAll(zipReader)
+	result, err := io.ReadAll(zr)
+	zr.Close()
+	gzipReaderPool.Put(zr)
 	if err != nil {
 		return "", err
 	}

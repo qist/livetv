@@ -1,18 +1,19 @@
 # ==========================
 # Builder 阶段
 # ==========================
-FROM golang:alpine AS builder
+# --platform=$BUILDPLATFORM：builder 始终运行在构建机原生架构上，
+# 不走 QEMU/KVM 模拟，配合下面的 GOARCH 做交叉编译，大幅提升多架构构建速度。
+FROM --platform=$BUILDPLATFORM golang:alpine AS builder
 WORKDIR /go/src/github.com/qist/livetv/
 ARG TARGETARCH
-# 安装构建依赖
-RUN apk add --no-cache build-base git
+# 纯 Go 交叉编译：cgo 已禁用，Go 原生支持跨架构编译，无需目标架构 C 工具链。
 COPY . .
 
-# Go 环境配置
-ENV CGO_ENABLED=1
-ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
-RUN gcc -v
-# 编译 livetv
+# Go 环境配置：禁用 cgo 并按目标架构交叉编译
+ENV CGO_ENABLED=0
+ENV GOOS=linux
+ENV GOARCH=${TARGETARCH}
+# 编译 livetv（在构建机原生架构上执行，输出目标架构二进制）
 RUN go build -ldflags "-w -s" -trimpath -o livetv .
 
 # ==========================
@@ -24,8 +25,6 @@ FROM alpine:latest
 RUN set -ex \
     && apk --no-cache add \
         ca-certificates \
-        gcompat \
-        libstdc++ \
         tzdata \
         ffmpeg \
         unzip \

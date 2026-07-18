@@ -5,16 +5,24 @@ import (
 	"strings"
 
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	_ "modernc.org/sqlite" // pure-Go (cgo-free) SQLite driver, registers as "sqlite"
 	"github.com/qist/livetv/model"
 )
 
 var DB *gorm.DB
 
 func InitDB(filepath string) (err error) {
-	DB, err = gorm.Open("sqlite3", filepath)
+	// Use modernc.org/sqlite (pure Go, no cgo) as the underlying driver.
+	// The gorm "sqlite3" dialect (auto-registered by gorm) is still used for
+	// SQL generation; the driver name "sqlite" selects the modernc driver.
+	// busy_timeout + WAL pragmas keep concurrent read/write access safe.
+	dsn := filepath + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)"
+	DB, err = gorm.Open("sqlite3", "sqlite", dsn)
 	if err != nil {
 		return err
+	}
+	if sqlDB := DB.DB(); sqlDB != nil {
+		sqlDB.SetMaxOpenConns(1) // serialize writes to avoid "database is locked"
 	}
 	err = DB.AutoMigrate(&model.Config{}, &model.Group{}, &model.Channel{}).Error
 	if err != nil {

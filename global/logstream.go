@@ -1,7 +1,6 @@
 package global
 
 import (
-	"strings"
 	"sync"
 )
 
@@ -11,7 +10,7 @@ type LogStream struct {
 	lines   []string
 	max     int
 	subs    map[chan string]struct{}
-	partial string
+	partial []byte
 }
 
 func NewLogStream(max int) *LogStream {
@@ -30,10 +29,26 @@ func (ls *LogStream) Write(p []byte) (int, error) {
 		return 0, nil
 	}
 	ls.mu.Lock()
-	data := ls.partial + string(p)
-	parts := strings.Split(data, "\n")
-	ls.partial = parts[len(parts)-1]
-	lines := parts[:len(parts)-1]
+	// Scan p for newlines, combining with any leftover partial from the previous Write.
+	lines := make([]string, 0, 4)
+	start := 0
+	for i := 0; i < len(p); i++ {
+		if p[i] == '\n' {
+			var line string
+			if len(ls.partial) > 0 {
+				line = string(ls.partial) + string(p[start:i])
+				ls.partial = ls.partial[:0]
+			} else {
+				line = string(p[start:i])
+			}
+			lines = append(lines, line)
+			start = i + 1
+		}
+	}
+	// Save remaining bytes as partial for next Write.
+	if start < len(p) {
+		ls.partial = append(ls.partial, p[start:]...)
+	}
 	for _, line := range lines {
 		ls.lines = append(ls.lines, line)
 		if len(ls.lines) > ls.max {

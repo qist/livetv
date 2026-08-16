@@ -1,7 +1,6 @@
 package service
 
 import (
-	"net/url"
 	"path/filepath"
 	"strings"
 )
@@ -45,46 +44,43 @@ func tokenConfig() (enabled bool, param string, value string) {
 
 func BuildLiveM3U8URL(baseUrl string, channelParam string, channelID string) string {
 	baseUrl = strings.TrimSuffix(baseUrl, "/")
-	path := baseUrl + "/live.m3u8"
-	values := url.Values{}
 	channelParam = strings.TrimSpace(channelParam)
 	if channelParam == "" {
 		channelParam = "c"
 	}
-	values.Set(channelParam, channelID)
+	var b strings.Builder
+	b.Grow(len(baseUrl) + len("/live.m3u8?") + len(channelParam) + 1 + len(channelID))
+	b.WriteString(baseUrl)
+	b.WriteString("/live.m3u8?")
+	b.WriteString(channelParam)
+	b.WriteByte('=')
+	b.WriteString(channelID)
 	if enabled, param, value := tokenConfig(); enabled {
-		values.Set(param, value)
+		b.WriteByte('&')
+		b.WriteString(param)
+		b.WriteByte('=')
+		b.WriteString(value)
 	}
-	return path + "?" + values.Encode()
+	return b.String()
 }
 
 func BuildTsProxyPrefix(baseUrl string) string {
 	baseUrl = strings.TrimSuffix(baseUrl, "/")
 	path := baseUrl + "/live.ts"
-	values := url.Values{}
 	if enabled, param, value := tokenConfig(); enabled {
-		values.Set(param, value)
+		return path + "?" + param + "=" + value + "&k="
 	}
-	encoded := values.Encode()
-	if encoded == "" {
-		return path + "?k="
-	}
-	return path + "?" + encoded + "&k="
+	return path + "?k="
 }
 
 func BuildPlaylistFileURL(baseUrl string, filename string) string {
 	baseUrl = strings.TrimSuffix(baseUrl, "/")
 	filename = strings.TrimPrefix(filename, "/")
 	path := baseUrl + "/" + filename
-	values := url.Values{}
 	if enabled, param, value := tokenConfig(); enabled {
-		values.Set(param, value)
+		return path + "?" + param + "=" + value
 	}
-	encoded := values.Encode()
-	if encoded == "" {
-		return path
-	}
-	return path + "?" + encoded
+	return path
 }
 
 func computeGroupTitles(groupName string, youtubeGroupTitles []string) []string {

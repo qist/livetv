@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -80,22 +79,13 @@ func GetYoutubeLiveM3U8(youtubeURL string) (string, error) {
 
 func RealGetYoutubeLiveM3U8(youtubeURL string) (string, error) {
 	youtubeURL = NormalizeYoutubeURL(youtubeURL)
-	YtdlCmd, err := GetConfig("ytdl_cmd")
-	if err != nil {
-		log.Println(err)
-		return "", err
+	cc := GetCachedConfig()
+	YtdlCmd := strings.TrimSpace(cc.YtdlCmd.Load().(string))
+	if YtdlCmd == "" {
+		YtdlCmd = "yt-dlp"
 	}
-	YtdlCmd = strings.TrimSpace(YtdlCmd)
-	YtdlArgs, err := GetConfig("ytdl_args")
-	if err != nil {
-		log.Println(err)
-		return "", err
-	}
-	YtdlCookies, err := GetConfig("ytdl_cookies")
-	if err != nil {
-		log.Println(err)
-		return "", err
-	}
+	YtdlArgs := cc.YtdlArgs.Load().(string)
+	YtdlCookies := strings.TrimSpace(cc.YtdlCookies.Load().(string))
 	ytdlArgs := splitArgs(strings.TrimSpace(YtdlArgs))
 	hasURLArg := false
 	for i, v := range ytdlArgs {
@@ -118,17 +108,12 @@ func RealGetYoutubeLiveM3U8(youtubeURL string) (string, error) {
 		}
 		ytdlArgs = append(ytdlArgs, "--cookies", ytdlCookies)
 	}
-	_, err = exec.LookPath(YtdlCmd)
+	_, err := exec.LookPath(YtdlCmd)
 	if err != nil {
 		log.Println(err)
 		return "", err
 	} else {
-		timeout := global.HttpClientTimeout
-		if cfgTimeout, err := GetConfig("ytdl_timeout"); err == nil {
-			if sec, err := strconv.Atoi(cfgTimeout); err == nil && sec > 0 {
-				timeout = time.Duration(sec) * time.Second
-			}
-		}
+		timeout := GetYtdlTimeout()
 		ctx, cancelFunc := context.WithTimeout(context.Background(), timeout)
 		defer cancelFunc()
 		log.Println(YtdlCmd, ytdlArgs)

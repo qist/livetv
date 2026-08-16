@@ -7,10 +7,15 @@ import (
 )
 
 func M3UGenerate() (string, error) {
-	baseUrl, err := GetConfig("base_url")
-	if err != nil {
-		log.Println(err)
-		return "", err
+	cc := GetCachedConfig()
+	baseUrl := cc.BaseUrl.Load().(string)
+	if baseUrl == "" {
+		var err error
+		baseUrl, err = GetConfig("base_url")
+		if err != nil {
+			log.Println(err)
+			return "", err
+		}
 	}
 	channels, err := GetAllChannel()
 	if err != nil {
@@ -19,8 +24,8 @@ func M3UGenerate() (string, error) {
 	}
 	var m3u strings.Builder
 	m3u.WriteString("#EXTM3U\n")
-	channelParam, err := GetConfig("channel_param")
-	if err != nil {
+	channelParam := cc.ChannelParam.Load().(string)
+	if channelParam == "" {
 		channelParam = "c"
 	}
 	youtubeM3UGroups, err := GetConfig("youtube_m3u_groups")

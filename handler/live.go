@@ -53,8 +53,8 @@ func TxtHandler(c *gin.Context) {
 }
 
 func LiveHandler(c *gin.Context) {
-	channelParam, err := service.GetConfig("channel_param")
-	if err != nil {
+	channelParam := service.GetCachedConfig().ChannelParam.Load().(string)
+	if channelParam == "" {
 		channelParam = "c"
 	}
 	channelIdentifier := c.Query(channelParam)

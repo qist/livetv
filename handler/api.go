@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -128,6 +129,9 @@ func IndexHandler(c *gin.Context) {
 	})
 }
 
+// cookieFileCache caches the cookies file content to avoid reading disk on every request.
+var cookieFileCache atomic.Value // string
+
 func loadConfig() (Config, error) {
 	var conf Config
 	if cmd, err := service.GetConfig("ytdl_cmd"); err != nil {
@@ -151,16 +155,21 @@ func loadConfig() (Config, error) {
 		conf.CookiesDomain = cookiesDomain
 	}
 	if conf.Cookies != "" {
-		datadir := os.Getenv("LIVETV_DATADIR")
-		if datadir == "" {
-			datadir = "./data"
-		}
 		cookiePath := conf.Cookies
 		if !filepath.IsAbs(cookiePath) {
+			datadir := os.Getenv("LIVETV_DATADIR")
+			if datadir == "" {
+				datadir = "./data"
+			}
 			cookiePath = filepath.Join(datadir, cookiePath)
 		}
-		if b, err := os.ReadFile(cookiePath); err == nil {
-			conf.CookiesContent = string(b)
+		// Try the cached content first; fall back to disk read on miss.
+		if cached, ok := cookieFileCache.Load().(string); ok && cached != "" {
+			conf.CookiesContent = cached
+		} else if b, err := os.ReadFile(cookiePath); err == nil {
+			content := string(b)
+			cookieFileCache.Store(content)
+			conf.CookiesContent = content
 		}
 	}
 	if ytdlTimeout, err := service.GetConfig("ytdl_timeout"); err != nil {
@@ -391,6 +400,7 @@ func UpdateConfigHandler(c *gin.Context) {
 		cleanContent := strings.TrimSpace(ytdlCookiesContent)
 		if cleanContent == "" {
 			_ = os.Remove(cookiePath)
+			cookieFileCache.Store("") // invalidate cached cookies content
 			if err := service.SetConfig("ytdl_cookies", ""); err != nil {
 				log.Println(err.Error())
 				c.HTML(http.StatusInternalServerError, "error.html", gin.H{
@@ -432,6 +442,7 @@ func UpdateConfigHandler(c *gin.Context) {
 				})
 				return
 			}
+			cookieFileCache.Store(finalContent) // update cache with new content
 			if err := service.SetConfig("ytdl_cookies", cookieFilename); err != nil {
 				log.Println(err.Error())
 				c.HTML(http.StatusInternalServerError, "error.html", gin.H{

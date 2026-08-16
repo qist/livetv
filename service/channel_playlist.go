@@ -68,9 +68,13 @@ func applyProxy(body string, proxy bool) (string, error) {
 	if !proxy {
 		return body, nil
 	}
-	baseUrl, err := GetConfig("base_url")
-	if err != nil {
-		return "", err
+	baseUrl := GetCachedConfig().BaseUrl.Load().(string)
+	if baseUrl == "" {
+		var err error
+		baseUrl, err = GetConfig("base_url")
+		if err != nil {
+			return "", err
+		}
 	}
 	return M3U8Process(body, BuildTsProxyPrefix(baseUrl)), nil
 }

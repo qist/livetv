@@ -19,6 +19,13 @@ type CachedConfig struct {
 	M3UFilename  atomic.Value // string
 	TSTimeout    atomic.Int64 // duration in seconds
 	TSCacheMB    atomic.Int64 // cache size in MB
+
+	YtdlCmd     atomic.Value // string
+	YtdlArgs    atomic.Value // string
+	YtdlCookies atomic.Value // string
+	YtdlTimeout atomic.Int64 // duration in seconds
+	BaseUrl     atomic.Value // string
+	ChannelParam atomic.Value // string
 }
 
 var cachedConfig CachedConfig
@@ -31,6 +38,12 @@ func init() {
 	cachedConfig.M3UFilename.Store("lives")
 	cachedConfig.TSTimeout.Store(30)
 	cachedConfig.TSCacheMB.Store(200)
+	cachedConfig.YtdlCmd.Store("yt-dlp")
+	cachedConfig.YtdlArgs.Store("-f b -g {url}")
+	cachedConfig.YtdlCookies.Store("")
+	cachedConfig.YtdlTimeout.Store(20)
+	cachedConfig.BaseUrl.Store("http://127.0.0.1:9000")
+	cachedConfig.ChannelParam.Store("c")
 }
 
 // RefreshCachedConfig reloads all cached config values from the database/cache.
@@ -66,6 +79,30 @@ func RefreshCachedConfig() {
 			cachedConfig.TSCacheMB.Store(int64(mb))
 		}
 	}
+	if v, err := GetConfig("ytdl_cmd"); err == nil {
+		cachedConfig.YtdlCmd.Store(v)
+	}
+	if v, err := GetConfig("ytdl_args"); err == nil {
+		cachedConfig.YtdlArgs.Store(v)
+	}
+	if v, err := GetConfig("ytdl_cookies"); err == nil {
+		cachedConfig.YtdlCookies.Store(v)
+	}
+	if v, err := GetConfig("ytdl_timeout"); err == nil {
+		if sec, err := strconv.Atoi(v); err == nil && sec > 0 {
+			cachedConfig.YtdlTimeout.Store(int64(sec))
+		}
+	}
+	if v, err := GetConfig("base_url"); err == nil {
+		cachedConfig.BaseUrl.Store(v)
+	}
+	if v, err := GetConfig("channel_param"); err == nil {
+		v = strings.TrimSpace(v)
+		if v == "" {
+			v = "c"
+		}
+		cachedConfig.ChannelParam.Store(v)
+	}
 }
 
 func GetCachedConfig() *CachedConfig {
@@ -80,6 +117,11 @@ func GetTSTimeout() time.Duration {
 // GetTSCacheMaxBytes returns the cached TS cache max size in bytes.
 func GetTSCacheMaxBytes() int64 {
 	return cachedConfig.TSCacheMB.Load() * 1024 * 1024
+}
+
+// GetYtdlTimeout returns the cached yt-dlp timeout duration.
+func GetYtdlTimeout() time.Duration {
+	return time.Duration(cachedConfig.YtdlTimeout.Load()) * time.Second
 }
 
 func GetConfig(key string) (string, error) {

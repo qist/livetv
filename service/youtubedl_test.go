@@ -37,3 +37,38 @@ func TestBuildYtdlErrorForBotCheck(t *testing.T) {
 		t.Fatalf("buildYtdlError() = %q, want cookies hint", err.Error())
 	}
 }
+
+func TestShouldRetryWithAndroidClient(t *testing.T) {
+	formatErr := []byte("ERROR: [youtube] abc123: Requested format is not available. Use --list-formats for a list of available formats")
+	cases := []struct {
+		name   string
+		args   []string
+		stderr []byte
+		want   bool
+	}{
+		{"format error without player-client", []string{"-f", "b", "-g", "{url}"}, formatErr, true},
+		{"no formats without player-client", []string{"-f", "b", "-g", "{url}"}, []byte("ERROR: No video formats found!"), true},
+		{"player-client already configured", []string{"--extractor-args", "youtube:player-client=tv", "-f", "b"}, formatErr, false},
+		{"player-client in equals form", []string{"--extractor-args=youtube:player-client=tv", "-f", "b"}, formatErr, false},
+		{"player_client in underscore form", []string{"--extractor-args", "youtube:player_client=tv", "-f", "b"}, formatErr, false},
+		{"unrelated error", []string{"-f", "b"}, []byte("ERROR: Video unavailable"), false},
+	}
+	for _, tc := range cases {
+		if got := shouldRetryWithAndroidClient(tc.args, tc.stderr); got != tc.want {
+			t.Errorf("%s: got %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}
+
+func TestWithAndroidClientArgs(t *testing.T) {
+	got := withAndroidClientArgs([]string{"-f", "b", "-g", "https://example.com/watch?v=x"})
+	want := []string{"--extractor-args", "youtube:player-client=android", "-f", "b", "-g", "https://example.com/watch?v=x"}
+	if len(got) != len(want) {
+		t.Fatalf("withAndroidClientArgs() = %#v, want %#v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("withAndroidClientArgs()[%d] = %q, want %q", i, got[i], want[i])
+		}
+	}
+}

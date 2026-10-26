@@ -1,9 +1,9 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -112,73 +112,78 @@ func RealGetYoutubeLiveM3U8(youtubeURL string) (string, error) {
 	if err != nil {
 		log.Println(err)
 		return "", err
-	} else {
-		timeout := GetYtdlTimeout()
-		ctx, cancelFunc := context.WithTimeout(context.Background(), timeout)
-		defer cancelFunc()
-		log.Println(YtdlCmd, ytdlArgs)
-		cmd := exec.CommandContext(ctx, YtdlCmd, ytdlArgs...)
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
-			log.Println(err)
-			return "", err
-		}
-		stderr, err := cmd.StderrPipe()
-		if err != nil {
-			log.Println(err)
-			return "", err
-		}
-		if err := cmd.Start(); err != nil {
-			log.Println(err)
-			return "", err
-		}
-		var stdoutBytes []byte
-		var stderrBytes []byte
-		stdoutCh := make(chan error, 1)
-		stderrCh := make(chan error, 1)
-		go func() {
-			b, readErr := io.ReadAll(stdout)
-			stdoutBytes = b
-			stdoutCh <- readErr
-		}()
-		go func() {
-			b, readErr := io.ReadAll(stderr)
-			stderrBytes = b
-			stderrCh <- readErr
-		}()
-
-		waitErr := cmd.Wait()
-		if err := <-stdoutCh; err != nil {
-			log.Println(err)
-			return "", err
-		}
-		if err := <-stderrCh; err != nil {
-			log.Println(err)
-			return "", err
-		}
-		if ctx.Err() == context.DeadlineExceeded {
-			if len(stderrBytes) > 0 {
-				log.Println("[YTDL stderr]", string(stderrBytes))
-			}
-			log.Println("[YTDL] timeout after", timeout)
-			return "", ctx.Err()
-		}
-		if waitErr != nil {
-			if len(stderrBytes) > 0 {
-				log.Println("[YTDL stderr]", string(stderrBytes))
-			}
-			wrappedErr := waitErr
-			if parsedErr := buildYtdlError(waitErr, stderrBytes); parsedErr != nil {
-				wrappedErr = parsedErr
-			}
-			log.Println(wrappedErr)
-			return "", wrappedErr
-		}
-		if len(stderrBytes) > 0 {
-			log.Println("[YTDL stderr]", string(stderrBytes))
-		}
-		return strings.TrimSpace(string(stdoutBytes)), nil
 	}
+	timeout := GetYtdlTimeout()
+	stdout, stderr, err := runYtdlCommand(YtdlCmd, ytdlArgs, timeout)
+	if err != nil && shouldRetryWithAndroidClient(ytdlArgs, stderr) {
+		retryArgs := withAndroidClientArgs(ytdlArgs)
+		log.Println("[YTDL] requested format unavailable, retrying with android client")
+		stdout, stderr, err = runYtdlCommand(YtdlCmd, retryArgs, timeout)
+	}
+	if err != nil {
+		if len(stderr) > 0 {
+			log.Println("[YTDL stderr]", string(stderr))
+		}
+		wrappedErr := err
+		if parsedErr := buildYtdlError(err, stderr); parsedErr != nil {
+			wrappedErr = parsedErr
+		}
+		log.Println(wrappedErr)
+		return "", wrappedErr
+	}
+	if len(stderr) > 0 {
+		log.Println("[YTDL stderr]", string(stderr))
+	}
+	return strings.TrimSpace(string(stdout)), nil
+}
+
+func runYtdlCommand(cmdName string, args []string, timeout time.Duration) ([]byte, []byte, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, cmdName, args...)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	log.Println(cmdName, args)
+	runErr := cmd.Run()
+	if ctx.Err() == context.DeadlineExceeded {
+		if stderr.Len() > 0 {
+			log.Println("[YTDL stderr]", stderr.String())
+		}
+		log.Println("[YTDL] timeout after", timeout)
+		return stdout.Bytes(), stderr.Bytes(), ctx.Err()
+	}
+	return stdout.Bytes(), stderr.Bytes(), runErr
+}
+
+// shouldRetryWithAndroidClient reports whether yt-dlp failed only because the
+// default player clients returned no muxed (video+audio) format. For live
+// streams the tv/visionos clients often expose separate video/audio tracks,
+// so "-f b" cannot match anything; the android client still provides muxed
+// HLS formats. Skip the retry when the user already configured a client.
+func shouldRetryWithAndroidClient(args []string, stderr []byte) bool {
+	if hasPlayerClientArg(args) {
+		return false
+	}
+	text := strings.ToLower(string(stderr))
+	return strings.Contains(text, "requested format is not available") ||
+		strings.Contains(text, "no video formats found")
+}
+
+func withAndroidClientArgs(args []string) []string {
+	retryArgs := make([]string, 0, len(args)+2)
+	retryArgs = append(retryArgs, "--extractor-args", "youtube:player-client=android")
+	return append(retryArgs, args...)
+}
+
+func hasPlayerClientArg(args []string) bool {
+	for _, arg := range args {
+		lower := strings.ToLower(arg)
+		if strings.Contains(lower, "player-client") || strings.Contains(lower, "player_client") {
+			return true
+		}
+	}
+	return false
 }
 
 func getOrCreateYtdlCall(cacheKey string) (*ytdlCall, bool) {

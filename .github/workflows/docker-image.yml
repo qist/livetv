@@ -9,8 +9,14 @@ on:
     branches:
       - main
     paths:
-      - Dockerfile
-      - .github/workflows/docker-image.yml
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'view/**'
+      - 'assert/**'
+      - '.env'
+      - 'Dockerfile'
+      - '.github/workflows/docker-image.yml'
   workflow_dispatch:
 
 env:

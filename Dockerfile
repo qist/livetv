@@ -22,15 +22,19 @@ RUN go build -ldflags "-w -s" -trimpath -o livetv .
 FROM alpine:latest
 
 # 安装运行依赖
+# 注意：必须使用 Alpine 仓库中的 deno（musl 构建）。官方 GitHub release 的
+# deno-*-unknown-linux-gnu.zip 依赖 glibc，在 Alpine 上无法执行，会导致
+# yt-dlp 报 "No supported JavaScript runtime could be found"。
 RUN set -ex \
     && apk --no-cache add \
         ca-certificates \
         tzdata \
         ffmpeg \
-        unzip \
+        deno \
         nodejs \
         npm \
-    && update-ca-certificates
+    && update-ca-certificates \
+    && deno --version
 
 # 设置工作目录
 WORKDIR /root
@@ -43,18 +47,6 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
         wget -O /usr/bin/yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_musllinux; \
     fi \
     && chmod +x /usr/bin/yt-dlp
-
-# 安装 deno (用于 yt-dlp EJS)
-ARG TARGETARCH
-RUN if [ "$TARGETARCH" = "arm64" ]; then \
-        wget -O /tmp/deno.zip https://github.com/denoland/deno/releases/latest/download/deno-aarch64-unknown-linux-gnu.zip; \
-    else \
-        wget -O /tmp/deno.zip https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip; \
-    fi \
-    && unzip -q /tmp/deno.zip -d /tmp \
-    && mv /tmp/deno /usr/bin/deno \
-    && chmod +x /usr/bin/deno \
-    && rm -f /tmp/deno.zip
 
 # 拷贝 Go 服务文件
 COPY --from=builder /go/src/github.com/qist/livetv/view ./view

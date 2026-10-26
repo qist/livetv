@@ -4,6 +4,13 @@ on:
   schedule:
     # 每天13点10分北京时间（UTC 3:10）
     - cron: "10 3 * * *"
+  # Dockerfile 或本工作流变更时立即重建，避免修复要等到 yt-dlp 发版后才生效
+  push:
+    branches:
+      - main
+    paths:
+      - Dockerfile
+      - .github/workflows/docker-image.yml
   workflow_dispatch:
 
 env:
@@ -40,7 +47,11 @@ jobs:
           echo "ytdlp_tag=$YTDLP_TAG" >> $GITHUB_ENV
           echo "yt-dlp tag: $YTDLP_TAG"
 
-          if [ "$DIFF_SEC" -le $((22*3600)) ]; then
+          # 定时任务只在 yt-dlp 有新版本时构建；push / 手动触发则强制构建
+          if [ "$GITHUB_EVENT_NAME" != "schedule" ]; then
+              echo "Triggered by $GITHUB_EVENT_NAME. Proceed build."
+              echo "run_build=true" >> $GITHUB_ENV
+          elif [ "$DIFF_SEC" -le $((22*3600)) ]; then
               echo "yt-dlp updated within 22 hours. Proceed build."
               echo "run_build=true" >> $GITHUB_ENV
           else

@@ -3,6 +3,8 @@ package global
 import (
 	"net"
 	"net/http"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -32,12 +34,15 @@ var (
 	ConfigCache       sync.Map
 	URLCache          sync.Map
 	M3U8Cache         = cache.New(3*time.Second, 10*time.Second)
-	HTTPTransport     = &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   5 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
+	// HTTPDialer is the shared dialer for all outbound HTTP connections.
+	// CVE-2026-98432: MPTCP is disabled by default; see MPTCPEnabled.
+	HTTPDialer = &net.Dialer{
+		Timeout:   5 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+	HTTPTransport = &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		DialContext:           HTTPDialer.DialContext,
 		ForceAttemptHTTP2:     true,
 		MaxIdleConns:          512,
 		MaxIdleConnsPerHost:   128,
@@ -59,3 +64,15 @@ var (
 		},
 	}
 )
+
+// MPTCPEnabled reports whether Multipath TCP may be used for new
+// connections. CVE-2026-98432: MPTCP is disabled by default; it can only be
+// opted into explicitly with LIVETV_MPTCP=1.
+func MPTCPEnabled() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("LIVETV_MPTCP"))) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
+}

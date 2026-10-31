@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -108,12 +109,26 @@ func main() {
 	})
 	router.Static("/assert", "./assert")
 	route.Register(router)
+	// CVE-2026-98432: MPTCP is disabled by default for both inbound and
+	// outbound connections; LIVETV_MPTCP=1 opts in explicitly.
+	mptcpEnabled := global.MPTCPEnabled()
+	global.HTTPDialer.SetMultipathTCP(mptcpEnabled)
 	srv := &http.Server{
 		Addr:    os.Getenv("LIVETV_LISTEN"),
 		Handler: router,
 	}
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		addr := srv.Addr
+		if addr == "" {
+			addr = ":http"
+		}
+		lc := net.ListenConfig{}
+		lc.SetMultipathTCP(mptcpEnabled)
+		ln, err := lc.Listen(context.Background(), "tcp", addr)
+		if err != nil {
+			log.Panicf("listen: %s\n", err)
+		}
+		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
 			log.Panicf("listen: %s\n", err)
 		}
 	}()

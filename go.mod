@@ -10,7 +10,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/robfig/cron/v3 v3.0.1
 	golang.org/x/text v0.43.0
-	modernc.org/sqlite v1.61.0
+	modernc.org/sqlite v1.61.1
 )
 
 require (
